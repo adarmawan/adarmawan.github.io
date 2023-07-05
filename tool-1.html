@@ -20,12 +20,21 @@
       height: calc(100vh - 40px);
     }
 
-    .graph_div{
+    .graph_div_container{
       background-color:white;
+      _height: 90vh;
+      overflow: hidden;
+      height: 90%;
+    }
+
+    #graph_div{
+      background-color:white;
+      height: 99%;
+      width: 99%;
     }
     .disabled {
-    pointer-events: none !important; /* Disable pointer events */
-    opacity: 0.5 !important; /* Reduce opacity to visually indicate disabled state */
+      pointer-events: none !important;
+      opacity: 0.5 !important;
     }
   </style>
 </head>
@@ -41,7 +50,7 @@
 
     <h5>
       <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key">
+      <input type="password" class_="form-control" id="tb_oai_key" value="">
       
     </h5>
   </div>
@@ -56,7 +65,7 @@
   <script __src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
   <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
   <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
-  
+  <script type="text/javascript" src="./modules/call_ai.js"></script>
 
 
   <!-- DATA -->
@@ -65,8 +74,7 @@
       {
         name:"ProcessFlow to Graph",
         template:
-`
-===PROBLEM STATEMENT AND RESOLUTION PROCESS
+`===PROBLEM STATEMENT AND RESOLUTION PROCESS
 __SECTION_1__
 
 ===SAMPLE GRAPH
@@ -114,101 +122,69 @@ Let's do this step-by-step:
       {
         name:"Function to Graph",
         template:
-`Write a valid MERMAID flowchart script of the FUNCTION_CODE below. Always use pascal casing for subgraph,nodes,functions names. Always use very explicit subgraphs and node names. Never use WHITE SPACE for subgraph,nodes,functions names. Never write any actual code in this MERMAID  script. Never forget to include the RETURN section. External function must be in its own subgraph. Never connect a subsection inside a subgraph into it self. Never make a recursive call to a subgraph. You will ONLY write the MERMAID script, never write anything else.
-
-###FUNCTION_CODE
+`===FUNCTION CODE
 __SECTION_1__
-        `,
+
+===SAMPLE CODE
+public bool CheckConsentAndUserId(bool IsConsent, string userId)
+{
+	if (!IsConsent || string.IsNullOrEmpty(userId))
+	{
+		return false;
+    }
+	return true;
+}
+
+===SAMPLE GRAPH
+graph TD
+Start("CheckConsentAndUserId") --> IsConsentValid{"IsConsent valid?"}
+IsConsentValid -->|"False"| ReturnFalse("Return false")
+IsConsentValid -->|"True"| IsUserIdEmpty{"Is userId empty?"}
+IsUserIdEmpty -->|"True"| ReturnFalse("Return false")
+IsUserIdEmpty -->|"False"| ReturnTrue("Return true")
+
+===INSTRUCTION
+Let's do this step-by-step:
+1. Read the FUNCTION CODE and understand the flow.
+2. Read the SAMPLE CODE and SAMPLE GRAPH, then follow its structure when writing a diagram.
+2. Surround any string in the graph with double quotations.
+3. Write a detailed MERMAID diagram for the FUNCTION CODE, and follow its process flow.
+4. Write the mermaid diagram script, don't write anything else.
+`
+        ,
         sample_input:``,
         sample_output:``,
       },
 
 
   ]
+
+  const callback = function (node_id) {
+      alert('A callback was triggered');
+    };
   </script>
   
   <!-- Mermaid-JS --> 
+  <script src="https://bumbu.me/svg-pan-zoom/dist/svg-pan-zoom.js"></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: false });
+   
+    const mm_config = {
+      startOnLoad: false,
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'cardinal' ,logLevel: 1 },
+      securityLevel: 'loose',
+    };
+    mermaid.initialize(mm_config);
     window.mermaid = mermaid;
   </script>
+
 
   <!-- UI Objects -->
   <script>
     const dlg_info = document.getElementById("dlg_info");
     const opt_tasks = document.getElementById("opt_tasks");
     const tb_oai_key = document.getElementById("tb_oai_key");
-  </script>
-
-  <!-- AI  -->
-  <script>
-    async function call_ai(userMsg="")
-    {
-      const p_obj = (p_templates.filter(x=>x.name==opt_tasks.value))[0]
-      const oaiKey = tb_oai_key.value;
-     
-      if(oaiKey=="")
-      {
-          const msg = `[ERROR: OAI - API key is empty]`
-          alert(msg);
-          return msg;
-      }
-
-
-      dlg_info.showModal();
-      try {
-        const p_final = p_obj.template.replace("__SECTION_1__",userMsg);
-        const oaiPayload={
-            model: "gpt-3.5-turbo",
-            temperature: 0.7,
-            max_tokens: 1024,
-            messages: [
-              //{ role: "system", content: systemCmd},
-              { role: "user", content: p_final }
-            ],
-        };
-        //console.log(oaiPayload);
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json;charset=utf-8',
-          'Authorization':`Bearer ${oaiKey}`
-        },
-        body: JSON.stringify(oaiPayload)
-        })
-
-        dlg_info.close("");
-
-        if(response.status!=200)
-        {
-          const msg = `[ERROR: OAI - ${response.status}]`
-          alert(msg);
-          return msg;
-        }
-        else
-        {
-          const rsp = await response.json();
-          const rspMsg = rsp.choices[0].message.content.trim()
-          console.log(rsp)
-
-          alert("AI Generation Finished!");
-          return rspMsg;
-        }
-
-        
-      } catch (error) {
-        
-        dlg_info.close("");
-        console.log(error)
-        const msg = `[ERROR: General - please check console]`
-        alert(msg);
-        
-        return "[ERROR: General]"
-      }
-      
-    }
+    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
   </script>
 
 
@@ -259,7 +235,14 @@ __SECTION_1__
       container.on('open', function () {
         $('#btn_submit_process_and_flow').on('click', async function () {
           console.log("btn_submit_process_and_flow");
-          const graphScript = await call_ai(document.getElementById("tb_process_and_flow").value);
+          
+          dlg_info.showModal();
+          const tb_process_and_flow = document.getElementById("tb_process_and_flow");
+          const p_obj = (p_templates.filter(x=>x.name==opt_tasks.value))[0]
+          const p_final = p_obj.template.replace("__SECTION_1__", tb_process_and_flow.value);
+          const graphScript = await call_oai_completion(p_final, tb_oai_key.value);
+          dlg_info.close("");
+
           if(!graphScript.includes("[ERROR:"))
           {
             document.getElementById("tb_mermaid_graph_script").value = graphScript;
@@ -283,10 +266,16 @@ __SECTION_1__
       container.on('open', function () {
         $('#btn_submit_mermaid_graph_script').on('click', async function () {
 
-          let element = document.querySelector('#div_mermaid_graph');
+          let element = document.querySelector('#div_mermaid_graph_container');
           const graphScript = document.querySelector('#tb_mermaid_graph_script').value;
-          const { svg } = await window.mermaid.render('graphDiv', graphScript);
-          element.innerHTML = svg;
+          const { svg } = await window.mermaid.render('graph_div', graphScript);
+          element.innerHTML = svg.replace(/[ ]*max-width:[ 0-9\.]*px;/i , '');
+          var panZoomTiger = svgPanZoom('#graph_div', {
+            zoomEnabled: true,
+            controlIconsEnabled: true,
+            fit: true,
+            center: true
+          })
           console.log(graphScript);
         });
       });
@@ -294,7 +283,7 @@ __SECTION_1__
 
     myLayout.registerComponent('process_flow_mermaid_graph', function (container, state) {
       container.getElement().html(`
-        <div id="div_mermaid_graph" style="height: 90%;" class="graph_div">
+        <div id="div_mermaid_graph_container" class="graph_div_container">
         </div>
         <div class="d-flex justify-content-end mt-2">
           <button class="btn btn-primary" id="btn_generate_md_file">Generate MD File</button>
