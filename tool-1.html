@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
   <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
   <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
+  <link type="text/css" rel="stylesheet" href="standard.css"/>
   <style>
     .header {
       text-align: center!important;
@@ -65,7 +66,6 @@
   <script __src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
   <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
   <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
-  <script type="text/javascript" src="./modules/call_ai.js"></script>
 
 
   <!-- DATA -->
@@ -178,6 +178,11 @@ Let's do this step-by-step:
     window.mermaid = mermaid;
   </script>
 
+  <!-- My Stuff -->
+  <script type="module">
+    import * as ai from "/modules/call_ai.js"
+    window.ai = ai;
+  </script>
 
   <!-- UI Objects -->
   <script>
@@ -213,8 +218,11 @@ Let's do this step-by-step:
                         {
                             type: 'component',
                             componentName: 'process_flow_mermaid_graph'
-                        }
-                    ]
+                        },
+                    ],
+                    width: 70,
+                    height_: 30,
+
                 }
                 
             ]}
@@ -240,7 +248,7 @@ Let's do this step-by-step:
           const tb_process_and_flow = document.getElementById("tb_process_and_flow");
           const p_obj = (p_templates.filter(x=>x.name==opt_tasks.value))[0]
           const p_final = p_obj.template.replace("__SECTION_1__", tb_process_and_flow.value);
-          const graphScript = await call_oai_completion(p_final, tb_oai_key.value);
+          const graphScript = await window.ai.call_oai_completion(p_final, tb_oai_key.value);
           dlg_info.close("");
 
           if(!graphScript.includes("[ERROR:"))
@@ -306,7 +314,9 @@ Let's do this step-by-step:
     })
 
     myLayout.init();
-
+    $(window).resize(function () {
+    myLayout.updateSize((window).width, (window).height);
+    });
     
 
 

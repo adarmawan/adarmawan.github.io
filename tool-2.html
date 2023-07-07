@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Persona With Long-term-memory and Knowledgebase</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
+  <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
+  <link type="text/css" rel="stylesheet" href="standard.css"/>
+  <style>
+    .header {
+      text-align: center!important;
+      padding: 10px;
+      background-color: #222222;
+      color: antiquewhite;
+    }
+
+
+    .golden-layout-container {
+      height: calc(100vh - 40px);
+    }
+
+    .graph_div_container{
+      background-color:white;
+      _height: 90vh;
+      overflow: hidden;
+      height: 90%;
+    }
+
+    #graph_div{
+      background-color:white;
+      height: 99%;
+      width: 99%;
+    }
+    .disabled {
+      pointer-events: none !important;
+      opacity: 0.5 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="header hstack gap-3">
+    <h5>
+      <label for="opt_tasks">Select a task:</label>
+      <select name="opt_tasks" id="opt_tasks">
+        <option value="ProcessFlow to Graph">ProcessFlow to Graph</option>
+        <option value="Function to Graph">Function to Graph</option>
+      </select>
+    </h5>
+
+    <h5>
+      <label for="tb_oai_key">OAI Key:</label>
+      <input type="password" class_="form-control" id="tb_oai_key" value="">
+      
+    </h5>
+  </div>
+
+  <!-- pop-up dialog box, information -->
+  <dialog id="dlg_info">
+    <h1> Requesting to OpenAI </h1>
+  </dialog>
+
+  <div class="golden-layout-container" id="golden-layout-container"></div>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
+  
+
+  <!-- My Stuff -->
+  <script type="module">
+    import * as ai from "/modules/call_ai.js"
+    import * as idb from "/modules/IndexDB.js"
+    import * as util from '/modules/utility.js';
+    import {VectorDB} from "/modules/VectorDB.js";
+
+   
+    let persona ={
+      "description":"Generic AI Assistant",
+      "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
+      "greetings":"Talk to me, and I will remember.",
+      
+      "user_name": "Arief",
+      "persona_name": "Lisa",
+
+      "sample_chat":[
+          "U:Hello there!", 
+          "B:*looking up from my book* Hi Arief, what can I help you with today?"
+      ]
+  };
+
+    let conversation={
+  "dataType":"conversation",
+  "references": [
+    "First conversation"
+  ],
+  "textChunks": [
+    {
+      "id": "85d192b3-a956-498b-81ef-32ae82a4fba6",
+      "timestamp": 1687228394,
+      "title": "dialog",
+      "keyConcepts": [""],
+      "text": "Arief:Hello there!<|D|>Lisa:*looking up from my book* Hi Arief, what can I help you with today?",
+      "vectors":[]
+    }
+  ]
+};
+  
+
+    //Test stuff
+    const vdb = new VectorDB();
+    conversation.textChunks[0].timestamp = util.GetTimeStamp()  
+    await vdb._saveVDBObject(conversation)
+    console.log(vdb)
+
+    window.ai = ai;
+    window.vdb = vdb;
+</script>
+  
+
+  <!-- UI Objects -->
+  <script>
+    const dlg_info = document.getElementById("dlg_info");
+    const opt_tasks = document.getElementById("opt_tasks");
+    const tb_oai_key = document.getElementById("tb_oai_key");
+    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
+  </script>
+
+
+  <!-- Layout -->
+  <script>
+     // GoldenLayout configuration
+     var config = {
+      content: [
+        {
+            type: 'row',
+            content: [
+                {
+                    type: 'column',
+                    content: [{
+                    type: 'component',
+                    componentName: 'process_flow_input',
+                    }, {
+                    type: 'component',
+                    componentName: 'process_flow_mermaid_script'
+                    }]
+                },
+
+                {
+                    type: 'column',
+                    content: [
+                        {
+                            type: 'component',
+                            componentName: 'process_flow_mermaid_graph'
+                        },
+                    ],
+                    width: 70,
+                    height_: 30,
+
+                }
+                
+            ]}
+    ]};
+
+    // Register components
+    var myLayout = new GoldenLayout(config, '#golden-layout-container');
+    myLayout.registerComponent('process_flow_input', function (container, state) {
+      container.getElement().html(`
+        <div class="input-group flex-grow-1">
+          <textarea class="form-control" id="tb_process_and_flow" rows="10">
+          </textarea>
+        </div>
+        <div class="d-flex justify-content-end mt-2">
+          <button class="btn btn-primary" id="btn_submit_process_and_flow">Submit</button>
+        </div>
+      `);
+      container.on('open', function () {
+        $('#btn_submit_process_and_flow').on('click', async function () {
+          console.log("btn_submit_process_and_flow");
+
+        });
+      });
+    });
+
+    myLayout.registerComponent('process_flow_mermaid_script', function (container, state) {
+      container.getElement().html(`
+        <div class="input-group flex-grow-1">
+          <textarea class="form-control" id="tb_mermaid_graph_script" rows="10">
+          </textarea>
+        </div>
+        <div class="d-flex justify-content-end mt-2">
+          <button class="btn btn-primary" id="btn_submit_mermaid_graph_script">Submit</button>
+        </div>
+        
+      `);
+      container.on('open', function () {
+        $('#btn_submit_mermaid_graph_script').on('click', async function () {
+          console.log("btn_submit_mermaid_graph_script");
+        });
+      });
+    });
+
+    myLayout.registerComponent('process_flow_mermaid_graph', function (container, state) {
+      container.getElement().html(`
+        <div id="div_mermaid_graph_container" class="graph_div_container">
+        </div>
+        <div class="d-flex justify-content-end mt-2">
+          <button class="btn btn-primary" id="btn_generate_md_file">Generate MD File</button>
+        </div>
+      `);
+      container.on('open', function () {
+        $('#btn_generate_md_file').on('click', async function () {
+            console.log("btn_generate_md_file");
+        });
+      });
+    });
+
+    // Callback for every created stack
+    myLayout.on( 'stackCreated', function( stack ){
+        //var container = stack.getActiveContentItem().container;
+        stack.element.find('.lm_tabs').addClass('disabled'); // Disable close button
+        stack.element.find('.lm_close').addClass('disabled'); // Disable close button
+        stack.element.find('.lm_maximise').addClass('disabled'); // Disable maximise button
+        stack.element.find('.lm_popout').addClass('disabled'); // Disable popout button
+    })
+
+    myLayout.init();
+
+    $(window).resize(function () {
+    myLayout.updateSize((window).width, (window).height);
+    });
+    
+
+    const tb_process_and_flow = document.getElementById("tb_process_and_flow");
+    const tb_mermaid_graph_script = document.getElementById("tb_mermaid_graph_script");
+    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
+    
+
+
+  </script>
+
+  
+</body>
+</html>

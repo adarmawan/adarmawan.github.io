@@ -1,0 +1,4 @@
+.lm_splitter:hover, .lm_splitter.lm_dragging {
+    background: #e0dc11;
+    opacity: 1;
+}
