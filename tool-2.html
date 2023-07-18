@@ -42,7 +42,7 @@
   <div class="header hstack gap-3">
     <h6>
       <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="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">
+      <input type="password" class_="form-control" id="tb_oai_key" value="">
       
     </h6>
   </div>
@@ -92,8 +92,24 @@
       }
     ]
   };
-  
+  const knowledgebase={
+    "dataType":"knowledgebase",
+    "references": [
+      "General Knowledge"
+    ],
+    "textChunks": [
+      {
+        "id": "85d192b3-a956-498b-81ef-32ae82a4fba6",
+        "timestamp": 1687228394,
+        "title": "General Knowledge",
+        "keyConcepts": [""],
+        "text": "The current year is 2023",
+        "vectors":[0,0,0]
+      }
+    ]
+  };
   </script>
+
   <!-- My Stuff -->
   <script type="module">
     import * as call_ai from "/modules/call_ai.js"
@@ -171,7 +187,7 @@
       try
       {
         const u_p = JSON.parse(temp)
-        await window.idb.SaveIDBObject(persona)
+        await window.idb.SaveIDBObject(u_p)
       }catch{
         alert("Invalid JSON Structure")
       }
@@ -246,8 +262,6 @@
       const oaiKey = tb_oai_key.value;
       window.ConversationDB.SetOpenAIApiKey(oaiKey);
       
-      render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), text: userMsg, from: 'me'}));
-      
       dlg_info.showModal();
       const brain = JSON.parse(document.getElementById('tb_persona_brain').value);
       let p_system = brain.persona_info;
@@ -255,7 +269,8 @@
       //console.log(p_user);
 
       
-      let rsp = await window.call_ai.call_oai_completion(p_system, p_user, oaiKey);
+      //let rsp = await window.call_ai.call_oai_completion(p_system, p_user, oaiKey);
+      let rsp = await window.call_ai.call_oai_completion("", p_user, oaiKey);
       if(rsp.includes("[ERROR"))
       {
         alert(rsp);
@@ -264,9 +279,12 @@
       {
         rsp = rsp.replaceAll(persona.persona_name+":","").trim();
         const botMsg = `${persona.persona_name}:${rsp}`;
-        render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), text: botMsg, from: 'bot'}));
 
-        await window.ConversationDB.AddDialog(userMsg,botMsg);
+        const newId = await window.ConversationDB.AddDialog(userMsg,botMsg);
+
+        render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), dialogId:newId, text: userMsg, from: 'me'}));
+        render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), dialogId:newId, text: botMsg, from: 'bot'}));
+        
       }
       
 
@@ -285,14 +303,8 @@
 
       for (const dialog of dialogs) 
 			{
-				//if(dialog[1].startsWith("U:!!memories-")==false) 
-				{
-					render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[1], from: 'me'}));
-					
-					//if(dialog[1].startsWith("U:!!memories-")==false)
-					render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[2], from: 'bot'}));
-				}
-				
+        render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[1], from: 'me'}));
+				render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[2], from: 'bot'}));
 			}
     }
     

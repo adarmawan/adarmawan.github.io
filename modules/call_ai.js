@@ -19,7 +19,7 @@ OAI Chat Result Structure:
   }
 }
 */
-export async function call_oai_completion(p_system, p_final="", oaiKey="", temperature=0.7,max_tokens=1024)
+export async function call_oai_completion(p_system, p_final="", oaiKey="", temperature=1,max_tokens=1024)
 {
 
     if(oaiKey=="")

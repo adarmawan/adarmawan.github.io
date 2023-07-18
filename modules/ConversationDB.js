@@ -108,7 +108,9 @@ export class ConversationDB
     {
         var searchConvo = null;
         var searchUserKb = null;
-        var p_queryContext = "===KNOWLEDGE_CONTEXT";
+        var p_context_kb = "===KNOWLEDGEBASE";
+        var p_context_convo = "===PAST CONVERSATIONS";
+        var p_context_instruct = "===INSTRUCTION";
         const userMsgVectors = await this.vdb.GetSentenceVectors(userMessage);
 
         var userKBContext = "";
@@ -137,7 +139,8 @@ export class ConversationDB
             {
                 let converted = await this.ConvertVDBItemsToDialogs(searchConvo);
                 for (const d of converted) {
-                    userConvoContext += `${d[1]}\n${d[2]}\n`;
+                    const c_dt = util.GetDateFromTimeStamp(d[0]);
+                    userConvoContext += `DateTime:${c_dt}\n${d[1]}\n${d[2]}\n\n`;
                     if(util.GetTokenCount(userConvoContext)>=maxUserConvoTokens) break;
                 }
             }
@@ -152,8 +155,16 @@ export class ConversationDB
 
         
         const lastDialogs = `${userMessage}\n${brainObj.persona_name}:`;
-        p_queryContext = `${p_queryContext}\n${userKBContext}${userConvoContext}\n\n${lastDialogs}`;
-        //p_queryContext = `${p_queryContext}\n${userKBContext}${userConvoContext}\n${botBrainObj.persona_info}\n\n${lastDialogs}`;
+        //p_queryContext = `${p_queryContext}\n${userKBContext}${userConvoContext}\n\n${lastDialogs}`;
+        const p_queryContext = 
+`
+${p_context_kb}
+${userKBContext}
+${p_context_convo}
+${userConvoContext}
+${p_context_instruct}\n
+${brainObj.persona_info}
+${lastDialogs}`;
         //p_queryContext = `${userMessage}\n\n${botBrainObj.persona_info}\n\n${botBrainObj.name}:`;
 
         console.log(`[ ConstructQueryContext ]\n${p_queryContext}\n!!TokenCount:${util.GetTokenCount(p_queryContext)}`)

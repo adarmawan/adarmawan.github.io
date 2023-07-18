@@ -58,6 +58,11 @@ export function GetGUIDV4() {
 }
 
 
+export function GetDateFromTimeStamp(seconds)
+{
+   return new Date(seconds*1000).toISOString();
+}
+
 export function getTimeStampFromDateTime(dateTime)
 {
   const dt = Date.parse(dateTime);
