@@ -19,8 +19,9 @@ OAI Chat Result Structure:
   }
 }
 */
-export async function call_oai_completion(p_final="", oaiKey="", temperature=0.7,max_tokens=1024)
+export async function call_oai_completion(p_system, p_final="", oaiKey="", temperature=0.7,max_tokens=1024)
 {
+
     if(oaiKey=="")
     {
         const msg = `[ERROR: OAI - API key is empty]`
@@ -35,7 +36,7 @@ export async function call_oai_completion(p_final="", oaiKey="", temperature=0.7
         temperature: temperature,
         max_tokens: max_tokens,
         messages: [
-            //{ role: "system", content: systemCmd},
+            { role: "system", content: p_system},
             { role: "user", content: p_final }
         ],
     };
@@ -53,7 +54,7 @@ export async function call_oai_completion(p_final="", oaiKey="", temperature=0.7
     if(response.status!=200)
     {
         const msg = `[ERROR: OAI - ${response.status}]`
-        alert(msg);
+        //alert(msg);
         return msg;
     }
     else
@@ -64,7 +65,7 @@ export async function call_oai_completion(p_final="", oaiKey="", temperature=0.7
 
         //console.log(rsp)
 
-        alert("AI Generation Finished!");
+        //alert("AI Generation Finished!");
         return rspMsg;
     }
 
@@ -73,9 +74,9 @@ export async function call_oai_completion(p_final="", oaiKey="", temperature=0.7
     
     console.log(error)
     const msg = `[ERROR: General - please check console]`
-    alert(msg);
+    //alert(msg);
     
-    return "[ERROR: General]"
+    return msg
     }
     
 }
@@ -139,7 +140,7 @@ export async function call_oai_embedding(p_final, oaiKey="")
     {
         const rsp = await response.json();
         const rspMsg = rsp.data;
-        console.log(rspMsg)
+        //console.log(rspMsg)
         return rspMsg;
     }
 

@@ -9,30 +9,29 @@
   <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
   <link type="text/css" rel="stylesheet" href="standard.css"/>
   <style>
-    .header {
-      text-align: center!important;
-      padding: 10px;
-      background-color: #222222;
-      color: antiquewhite;
-    }
-
-
-    .golden-layout-container {
-      height: calc(100vh - 40px);
-    }
-
-    .graph_div_container{
+    
+    #div_persona_brain{
       background-color:white;
-      _height: 90vh;
+      overflow: hidden;
+    }
+
+    #div_persona_chat{
+      flex: 1;
+			background-color: #c1bebe;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			_justify-content: center;
+			padding: 10px;
+      height: 85%;
+    }
+
+    #div_user_documents{
+      background-color:white;
       overflow: hidden;
       height: 90%;
     }
 
-    #graph_div{
-      background-color:white;
-      height: 99%;
-      width: 99%;
-    }
     .disabled {
       pointer-events: none !important;
       opacity: 0.5 !important;
@@ -41,19 +40,11 @@
 </head>
 <body>
   <div class="header hstack gap-3">
-    <h5>
-      <label for="opt_tasks">Select a task:</label>
-      <select name="opt_tasks" id="opt_tasks">
-        <option value="ProcessFlow to Graph">ProcessFlow to Graph</option>
-        <option value="Function to Graph">Function to Graph</option>
-      </select>
-    </h5>
-
-    <h5>
+    <h6>
       <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="">
+      <input type="password" class_="form-control" id="tb_oai_key" value="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">
       
-    </h5>
+    </h6>
   </div>
 
   <!-- pop-up dialog box, information -->
@@ -67,63 +58,252 @@
   <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
   
 
-  <!-- My Stuff -->
-  <script type="module">
-    import * as ai from "/modules/call_ai.js"
-    import * as idb from "/modules/IndexDB.js"
-    import * as util from '/modules/utility.js';
-    import {VectorDB} from "/modules/VectorDB.js";
-
-   
-    let persona ={
-      "description":"Generic AI Assistant",
+  <!-- DATA -->
+  <script>
+    const persona ={
+      "dataType": "persona",
+     
       "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
       "greetings":"Talk to me, and I will remember.",
       
       "user_name": "Arief",
       "persona_name": "Lisa",
-
-      "sample_chat":[
-          "U:Hello there!", 
-          "B:*looking up from my book* Hi Arief, what can I help you with today?"
-      ]
+      "load_history_items":10,
+      "inference_msv_kb_base":0.8,
+      "inference_msv_kb_chat":0.8,
+      "inference_token_kb_base":512,
+      "inference_token_kb_chat":512,
+      "inference_items_recent_chats":5,
   };
 
-    let conversation={
-  "dataType":"conversation",
-  "references": [
-    "First conversation"
-  ],
-  "textChunks": [
-    {
-      "id": "85d192b3-a956-498b-81ef-32ae82a4fba6",
-      "timestamp": 1687228394,
-      "title": "dialog",
-      "keyConcepts": [""],
-      "text": "Arief:Hello there!<|D|>Lisa:*looking up from my book* Hi Arief, what can I help you with today?",
-      "vectors":[]
-    }
-  ]
-};
+  const conversation={
+    "dataType":"conversation",
+    "references": [
+      "First conversation"
+    ],
+    "textChunks": [
+      {
+        "id": "85d192b3-a956-498b-81ef-32ae82a4fba6",
+        "timestamp": 1687228394,
+        "title": "First conversation",
+        "keyConcepts": [""],
+        "text": "User:Hello there!<|D|>Persona:*looking up from my book* Hi User, what can I help you with today?",
+        "vectors":[0,0,0]
+      }
+    ]
+  };
   
+  </script>
+  <!-- My Stuff -->
+  <script type="module">
+    import * as call_ai from "/modules/call_ai.js"
+    import * as idb from "/modules/IndexDB.js"
+    import * as util from '/modules/utility.js';
+    import {VectorDB} from "/modules/VectorDB.js";
+    import {ConversationDB} from "/modules/ConversationDB.js";
 
-    //Test stuff
-    const vdb = new VectorDB();
-    conversation.textChunks[0].timestamp = util.GetTimeStamp()  
-    await vdb._saveVDBObject(conversation)
-    console.log(vdb)
+    //Test VDB
+    //const vdb = new VectorDB();
+    //conversation.textChunks[0].timestamp = util.GetTimeStamp()  
+    //await vdb._saveVDBObject(conversation)
+    
+    //Test IDB
+    //await idb.SaveIDBObject(persona)
+    //await idb.SaveIDBObject(conversation)
+    //await idb.SaveIDBObject(persona)
+    //const x = await idb.GetIDBObject(VectorDB.DATA_TYPE_CONVO);
+    //console.log(x)
 
-    window.ai = ai;
-    window.vdb = vdb;
+
+    window.call_ai = call_ai;
+    window.idb = idb;
+    window.util = util;
+    window.VectorDB = new VectorDB();
+    window.ConversationDB = new ConversationDB();
 </script>
   
 
   <!-- UI Objects -->
   <script>
     const dlg_info = document.getElementById("dlg_info");
-    const opt_tasks = document.getElementById("opt_tasks");
     const tb_oai_key = document.getElementById("tb_oai_key");
-    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
+  </script>
+
+
+  <!-- FUNCTIONS -->
+  <script>
+    async function prepare_idb()
+    {
+      await window.idb.SaveIDBObject(persona)
+      await window.idb.SaveIDBObject(conversation)
+      await window.idb.SaveIDBObject(persona)
+    }
+
+    async function load_user_idb()
+    {
+      const u_p = await window.idb.GetIDBObject("persona");
+      if(u_p!=null)
+      {
+        document.getElementById('tb_persona_brain').value = JSON.stringify(u_p,null,2);
+      }
+      else
+      {
+        await window.idb.SaveIDBObject(persona)
+      }
+
+      const u_c = await window.idb.GetIDBObject("conversation");
+      if(u_c!=null)
+      {
+        //document.getElementById('tb_persona_brain').value = u_p;
+        await msgGetHistory();
+      }
+      else
+      {
+        await window.idb.SaveIDBObject(conversation)
+      }
+
+    }
+
+
+    async function update_user_persona()
+    {
+      const temp = document.getElementById('tb_persona_brain').value;
+      try
+      {
+        const u_p = JSON.parse(temp)
+        await window.idb.SaveIDBObject(persona)
+      }catch{
+        alert("Invalid JSON Structure")
+      }
+      
+    }
+    
+    function scrollMessageToBottom()
+		{
+			var objDiv = document.getElementById("messages");
+			objDiv.scrollTop = objDiv.scrollHeight;
+		}
+
+    function render_msg(data) 
+		{
+			var message = JSON.parse(data);
+			message.timestamp = new Date(message.timestamp*1000).toISOString();
+			
+			const msgText = message.text
+								   .replaceAll("\"","")
+								   //.replaceAll(`${userName}:`,"")
+								   //.replaceAll(`${botName}:`,"")
+								   .replaceAll(`U:`,"")
+								   .replaceAll(`B:`,"")
+								   .replaceAll(".*","*")
+								   //.replaceAll(".",".<br>")
+								   .replaceAll("\n","<br>");
+			
+			var msg_ = 
+			`<div class="_MSG_CLASS_">
+			<p>_MSG_TEXT_</p>
+			<span class="_TIME_CLASS_">_TIMESTAMP_</span>
+			</div>`
+
+			var msg = 
+			`<div class="_MSG_CLASS_">
+			<p>_MSG_TEXT_</p>
+			<span class="_TIME_CLASS_">_TIMESTAMP_</span>
+			_BUTTONS_
+			</div>`
+			
+			const buttons =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
+			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
+			
+			msg = msg.replace("_MSG_TEXT_", msgText)
+			if(message.from === 'me')
+			{
+				msg = msg.replaceAll("_BUTTONS_", "")
+				msg = msg.replace("_MSG_CLASS_", `message message-dark`)
+				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIME_CLASS_", `time-left`)
+				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)
+			}
+			else
+			{
+				msg = msg.replaceAll("_BUTTONS_", buttons)
+				msg = msg.replace("_MSG_CLASS_", `message`)
+				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIME_CLASS_", `time-right`)
+				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
+			}
+			
+			const messagesDiv = document.getElementById('messages');
+			//const messageDiv = document.createElement('div');
+			messagesDiv.innerHTML += msg
+			scrollMessageToBottom()
+		};
+
+    async function msgSend(input="")
+    {
+      const userMsg = input==null ? '':`${persona.user_name}:${input.trim()}`;
+
+      const oaiKey = tb_oai_key.value;
+      window.ConversationDB.SetOpenAIApiKey(oaiKey);
+      
+      render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), text: userMsg, from: 'me'}));
+      
+      dlg_info.showModal();
+      const brain = JSON.parse(document.getElementById('tb_persona_brain').value);
+      let p_system = brain.persona_info;
+      let p_user = await window.ConversationDB.ConstructQueryContext(brain, userMsg, 5,)
+      //console.log(p_user);
+
+      
+      let rsp = await window.call_ai.call_oai_completion(p_system, p_user, oaiKey);
+      if(rsp.includes("[ERROR"))
+      {
+        alert(rsp);
+      }
+      else
+      {
+        rsp = rsp.replaceAll(persona.persona_name+":","").trim();
+        const botMsg = `${persona.persona_name}:${rsp}`;
+        render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), text: botMsg, from: 'bot'}));
+
+        await window.ConversationDB.AddDialog(userMsg,botMsg);
+      }
+      
+
+      dlg_info.close("");
+
+    }
+
+    
+    async function msgGetHistory()
+    {
+      document.getElementById("messages").innerHTML = "";
+
+      const oaiKey = tb_oai_key.value;
+      window.ConversationDB.SetOpenAIApiKey(oaiKey);
+      const dialogs = await window.ConversationDB.GetHistory(10);
+
+      for (const dialog of dialogs) 
+			{
+				//if(dialog[1].startsWith("U:!!memories-")==false) 
+				{
+					render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[1], from: 'me'}));
+					
+					//if(dialog[1].startsWith("U:!!memories-")==false)
+					render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[2], from: 'bot'}));
+				}
+				
+			}
+    }
+    
+    async function click_delete_dialog(dialog_id)
+		{
+			const oaiKey = tb_oai_key.value;
+      window.ConversationDB.SetOpenAIApiKey(oaiKey);
+      await window.ConversationDB.DeleteDialog(dialog_id);
+      await msgGetHistory();
+		}
+
   </script>
 
 
@@ -139,11 +319,9 @@
                     type: 'column',
                     content: [{
                     type: 'component',
-                    componentName: 'process_flow_input',
-                    }, {
-                    type: 'component',
-                    componentName: 'process_flow_mermaid_script'
-                    }]
+                    componentName: 'persona_brain',
+                    }],
+                    width: 30,
                 },
 
                 {
@@ -151,69 +329,100 @@
                     content: [
                         {
                             type: 'component',
-                            componentName: 'process_flow_mermaid_graph'
+                            componentName: 'persona_chat'
                         },
                     ],
-                    width: 70,
-                    height_: 30,
+                    width: 30
+                },
 
-                }
+                {
+                    type: 'column',
+                    content: [{
+                    type: 'component',
+                    componentName: 'user_documents',
+                    }],
+                    width: 30
+                },
                 
             ]}
     ]};
 
     // Register components
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
-    myLayout.registerComponent('process_flow_input', function (container, state) {
+    myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
-        <div class="input-group flex-grow-1">
-          <textarea class="form-control" id="tb_process_and_flow" rows="10">
+        <div id="div_persona_brain">
+          <textarea class="form-control" id="tb_persona_brain" rows="25">
           </textarea>
         </div>
         <div class="d-flex justify-content-end mt-2">
-          <button class="btn btn-primary" id="btn_submit_process_and_flow">Submit</button>
+          <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
+          <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
         </div>
       `);
       container.on('open', function () {
-        $('#btn_submit_process_and_flow').on('click', async function () {
-          console.log("btn_submit_process_and_flow");
-
+        $('#btn_default_persona_brain').on('click', async function () {
+          document.getElementById('tb_persona_brain').value = JSON.stringify(persona, null, 2);
+        });
+        $('#btn_save_persona_brain').on('click', async function () {
+          //document.getElementById('tb_persona_brain').value = JSON.stringify(persona, null, 2);
+          update_user_persona();
         });
       });
     });
 
-    myLayout.registerComponent('process_flow_mermaid_script', function (container, state) {
+    myLayout.registerComponent('persona_chat', function (container, state) {
       container.getElement().html(`
-        <div class="input-group flex-grow-1">
-          <textarea class="form-control" id="tb_mermaid_graph_script" rows="10">
-          </textarea>
+        <div id="div_persona_chat">
+          <div id="messages" class="messages">
+          </div>
+        </div>
+        <div class="user-input mt-2">
+          <input id="message-input" type="text" class="form-control input-text" placeholder="Type your message...">
+          <input id="message-send" type="submit" class="btn btn-primary input-submit" value="Send">
+        </div>
+        <button class="btn btn-primary" id="btn_load_convo">Load History</button>
+        <button class="btn btn-primary" id="btn_clear_convo">Clear History</button>
+      `);
+      container.on('open', function () {
+        $('#message-send').on('click', async function () {
+          await msgSend(document.getElementById("message-input").value)
+          //console.log("btn_submit_persona_chat");
+        });
+
+        $('#btn_load_convo').on('click', async function () {
+          await msgGetHistory();
+        });
+
+        $('#btn_clear_convo').on('click', async function () {
+          let text = "REALLY clear chat history????";
+          if (confirm(text) == true) {
+            //text = "You pressed OK!";
+            
+          } else {
+            //text = "You canceled!";
+          }
+        });
+
+
+      });
+    });
+
+    myLayout.registerComponent('user_documents', function (container, state) {
+      container.getElement().html(`
+        <div id="div_user_documents">
         </div>
         <div class="d-flex justify-content-end mt-2">
-          <button class="btn btn-primary" id="btn_submit_mermaid_graph_script">Submit</button>
+          <button class="btn btn-primary" id="btn_user_documents">Generate MD File</button>
         </div>
-        
       `);
       container.on('open', function () {
-        $('#btn_submit_mermaid_graph_script').on('click', async function () {
-          console.log("btn_submit_mermaid_graph_script");
+        $('#btn_user_documents').on('click', async function () {
+            console.log("btn_user_documents");
         });
       });
     });
 
-    myLayout.registerComponent('process_flow_mermaid_graph', function (container, state) {
-      container.getElement().html(`
-        <div id="div_mermaid_graph_container" class="graph_div_container">
-        </div>
-        <div class="d-flex justify-content-end mt-2">
-          <button class="btn btn-primary" id="btn_generate_md_file">Generate MD File</button>
-        </div>
-      `);
-      container.on('open', function () {
-        $('#btn_generate_md_file').on('click', async function () {
-            console.log("btn_generate_md_file");
-        });
-      });
-    });
 
     // Callback for every created stack
     myLayout.on( 'stackCreated', function( stack ){
@@ -226,13 +435,19 @@
 
     myLayout.init();
 
+    
+
+    $(window).load(async function() {
+      await load_user_idb();
+    });
+
     $(window).resize(function () {
     myLayout.updateSize((window).width, (window).height);
     });
     
 
-    const tb_process_and_flow = document.getElementById("tb_process_and_flow");
-    const tb_mermaid_graph_script = document.getElementById("tb_mermaid_graph_script");
+    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
+    //const tb_mermaid_graph_script = document.getElementById("tb_mermaid_graph_script");
     //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
     
 

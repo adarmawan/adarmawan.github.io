@@ -1,4 +1,123 @@
+.header {
+    text-align: center!important;
+    padding: 10px;
+    background-color: #222222;
+    color: antiquewhite;
+  }
+
+
+.golden-layout-container {
+    height: calc(94vh);
+  }
+
 .lm_splitter:hover, .lm_splitter.lm_dragging {
     background: #e0dc11;
     opacity: 1;
+}
+
+
+/* Set user input to be a horizontal stack */
+.user-input {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    _height: 15%;
+    width: 100%;
+    _padding: 10px;
+}
+
+.input-text{
+    //margin: 0.2rem;
+}
+/* Set input submit to be 20% width */
+.input-submit {
+    width: 20%;
+}
+
+/* Set messages to be 80% height */
+.messages {
+    width: 100%;
+    overflow-y:scroll;
+}
+
+/* Set message style */
+.message {
+    
+    background-color: #f2f2f2;
+    border-radius: 5px;
+
+    padding: 10px;
+    margin: 10px 0;
+}
+.message::after {
+content: "";
+clear: both;
+display: table;
+}
+.message-dark {
+    border-color: #ccc;
+      background-color: #ddd;
+}
+.message img {
+float: left;
+max-width: 60px;
+width: 100%;
+margin-right: 20px;
+border-radius: 50%;
+}
+
+.message img.right {
+float: right;
+margin-left: 20px;
+margin-right:0;
+}
+
+.time-right {
+float: right;
+color: #aaa;
+}
+
+.time-left {
+float: left;
+color: #999;
+}
+/* OTHER STYLINGS */
+.form-control:focus {
+    border-color: rgb(92, 86, 101);
+    box-shadow: none;
+}
+.messages::-webkit-scrollbar,
+.brain-list::-webkit-scrollbar,
+.convo-list::-webkit-scrollbar {
+    display: none;
+}
+
+.btn-group-vertical > .btn:not(:last-child) {
+    margin-bottom: 0.4rem;
+}
+.brain-list, .convo-list{
+    height: 10rem;
+    width: 100%;
+    overflow-y:scroll;
+}
+.list-group-item {
+    padding: 0.25rem 0.25rem;
+}
+.docTitle-list{
+    min-height: 40% !important;
+    max-height: 80% !important;
+    overflow-y:scroll;
+}
+.list-group-item.active {
+    color: #fff !important;
+    background-color: #6baef6;
+}
+
+.collapsable{
+    display: inherit;
+}
+
+.collapsable.active{
+    display: none;
 }

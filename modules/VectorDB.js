@@ -39,14 +39,12 @@ export class VectorDB {
     }
 
     
-    async _openDB() {
-        return idb.OpenIDB('vdbDB', 'vdbStore');
-    }
+    /* DB Persistent BackEnd */
     async _saveVDBObject(vdbObj) {
-        return idb.SaveIDBObject('vdbDB', 'vdbStore', vdbObj);
+        return idb.SaveIDBObject(vdbObj);
     }
-    async _getVDBObject(dataType=VectorDB.DATA_TYPE_KB) {
-        return idb.GetIDBObject('vdbDB', 'vdbStore', dataType);
+    async _getVDBObject(dataType) {
+        return idb.GetIDBObject(dataType);
     }
    
 
@@ -87,7 +85,7 @@ export class VectorDB {
 
     async GetSentenceVectors(sentence="")
     {
-        const vectors = (await oai.call_oai_embedding(this.oaiKey, textChunk))[0].embedding;
+        const vectors = (await oai.call_oai_embedding(sentence, this.oaiKey))[0].embedding;
         return vectors
     }
     async NewKnowledgeBaseItemObjectWithSummary(oaiKey, title = "", keyConcepts = "", textChunk = "", textChunkSummary = "") {
@@ -141,6 +139,7 @@ export class VectorDB {
             
             return q.id;
         } catch (error) {
+            console.log(error)
             return -1
         }
         
@@ -240,14 +239,14 @@ export class VectorDB {
     }
 
 
-    async Search(dataType=VectorDB.DATA_TYPE_KB, userInput = "", docTitles = [""], keyConcepts = [""], minSimilarityValue = 0.2, maxResult = 10) {
+    async Search(dataType=VectorDB.DATA_TYPE_KB, userMsgVectors=[], userInput = "", docTitles = [""], keyConcepts = [""], minSimilarityValue = 0.2, maxResult = 10) {
         //console.log(docTitles)
         //console.log(keyConcepts)
 
         try {
             var userKnowledgeBaseObj = await this.LoadKnowledgeBaseFile(dataType)
             
-            const vTest = await this.GetSentenceVectors(userInput);
+            const vTest = userMsgVectors;
             var simTest = []
 
             var finalKB = this.NewKnowledgeBaseObject(dataType)
