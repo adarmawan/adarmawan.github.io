@@ -162,8 +162,8 @@ ${p_context_kb}
 ${userKBContext}
 ${p_context_convo}
 ${userConvoContext}
-${p_context_instruct}\n
-${brainObj.persona_info}
+${p_context_instruct}
+${brainObj.persona_info}${brainObj.persona_context}
 ${lastDialogs}`;
         //p_queryContext = `${userMessage}\n\n${botBrainObj.persona_info}\n\n${botBrainObj.name}:`;
 
