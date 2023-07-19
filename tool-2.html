@@ -28,8 +28,9 @@
 
     #div_user_documents{
       background-color:white;
-      overflow: hidden;
+      overflow: scroll;
       height: 90%;
+      padding: 0.5em;
     }
 
     .disabled {
@@ -42,16 +43,27 @@
   <div class="header hstack gap-3">
     <h6>
       <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="">
-      
+      <input type="password" class_="form-control" id="tb_oai_key" value="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">
     </h6>
   </div>
-
+  
   <!-- pop-up dialog box, information -->
   <dialog id="dlg_info">
     <h1> Requesting to OpenAI </h1>
   </dialog>
-
+  <dialog id="dlg_kb_input">
+    <form method="dialog" style="width: 50vw;">
+      
+        <label for="kb_input_content">KB Content</label>
+        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:49vw;">
+        </textarea>
+      
+      <div>
+        <button id="kb_input_content_cancel" type="reset">Cancel</button>
+        <button id="kb_input_content_submit" type="submit">Submit</button>
+      </div>
+    </form>
+  </dialog>
   <div class="golden-layout-container" id="golden-layout-container"></div>
 
   <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
@@ -76,7 +88,7 @@
       "inference_items_recent_chats":5,
   };
 
-  const conversation={
+    const conversation={
     "dataType":"conversation",
     "references": [
       "First conversation"
@@ -92,7 +104,8 @@
       }
     ]
   };
-  const knowledgebase={
+  
+    const knowledgebase={
     "dataType":"knowledgebase",
     "references": [
       "General Knowledge"
@@ -118,42 +131,33 @@
     import {VectorDB} from "/modules/VectorDB.js";
     import {ConversationDB} from "/modules/ConversationDB.js";
 
-    //Test VDB
-    //const vdb = new VectorDB();
-    //conversation.textChunks[0].timestamp = util.GetTimeStamp()  
-    //await vdb._saveVDBObject(conversation)
-    
-    //Test IDB
-    //await idb.SaveIDBObject(persona)
-    //await idb.SaveIDBObject(conversation)
-    //await idb.SaveIDBObject(persona)
-    //const x = await idb.GetIDBObject(VectorDB.DATA_TYPE_CONVO);
-    //console.log(x)
-
-
     window.call_ai = call_ai;
     window.idb = idb;
     window.util = util;
     window.VectorDB = new VectorDB();
     window.ConversationDB = new ConversationDB();
-</script>
+  </script>
   
 
   <!-- UI Objects -->
   <script>
     const dlg_info = document.getElementById("dlg_info");
     const tb_oai_key = document.getElementById("tb_oai_key");
+    
+    const dlg_kb_input = document.getElementById("dlg_kb_input");
+    const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
+    const kb_input_content_submit = document.getElementById("kb_input_content_submit");
+    dlg_kb_input.returnValue = "kb_input_content";
   </script>
 
 
   <!-- FUNCTIONS -->
   <script>
-    async function prepare_idb()
-    {
-      await window.idb.SaveIDBObject(persona)
-      await window.idb.SaveIDBObject(conversation)
-      await window.idb.SaveIDBObject(persona)
-    }
+    function scrollMessageToBottom()
+		{
+			var objDiv = document.getElementById("messages");
+			objDiv.scrollTop = objDiv.scrollHeight;
+		}
 
     async function load_user_idb()
     {
@@ -178,8 +182,17 @@
         await window.idb.SaveIDBObject(conversation)
       }
 
-    }
+      const u_k = await window.idb.GetIDBObject("knowledgebase");
+      if(u_k!=null)
+      {
+        await kbGetTitles();
+      }
+      else
+      {
+        await window.idb.SaveIDBObject(knowledgebase)
+      }
 
+    }
 
     async function update_user_persona()
     {
@@ -194,13 +207,7 @@
       
     }
     
-    function scrollMessageToBottom()
-		{
-			var objDiv = document.getElementById("messages");
-			objDiv.scrollTop = objDiv.scrollHeight;
-		}
-
-    function render_msg(data) 
+    function render_msg(data)
 		{
 			var message = JSON.parse(data);
 			message.timestamp = new Date(message.timestamp*1000).toISOString();
@@ -215,12 +222,6 @@
 								   //.replaceAll(".",".<br>")
 								   .replaceAll("\n","<br>");
 			
-			var msg_ = 
-			`<div class="_MSG_CLASS_">
-			<p>_MSG_TEXT_</p>
-			<span class="_TIME_CLASS_">_TIMESTAMP_</span>
-			</div>`
-
 			var msg = 
 			`<div class="_MSG_CLASS_">
 			<p>_MSG_TEXT_</p>
@@ -228,8 +229,9 @@
 			_BUTTONS_
 			</div>`
 			
-			const buttons =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
+			const buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
 			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
+      const buttons =`<button onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
 			
 			msg = msg.replace("_MSG_TEXT_", msgText)
 			if(message.from === 'me')
@@ -260,6 +262,12 @@
       const userMsg = input==null ? '':`${persona.user_name}:${input.trim()}`;
 
       const oaiKey = tb_oai_key.value;
+      if(oaiKey=="")
+      {
+          const msg = `[ERROR: OAI - API key is empty]`
+          alert(msg);
+          return;
+      }
       window.ConversationDB.SetOpenAIApiKey(oaiKey);
       
       dlg_info.showModal();
@@ -270,7 +278,7 @@
 
       
       //let rsp = await window.call_ai.call_oai_completion(p_system, p_user, oaiKey);
-      let rsp = await window.call_ai.call_oai_completion("", p_user, oaiKey);
+      let rsp = await window.call_ai.call_oai_completion("", p_user, oaiKey, 0.7, 256);
       if(rsp.includes("[ERROR"))
       {
         alert(rsp);
@@ -292,7 +300,6 @@
 
     }
 
-    
     async function msgGetHistory()
     {
       document.getElementById("messages").innerHTML = "";
@@ -307,6 +314,11 @@
 				render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[2], from: 'bot'}));
 			}
     }
+
+    async function msgClearHistory()
+    {
+      await window.idb.SaveIDBObject(conversation);
+    }
     
     async function click_delete_dialog(dialog_id)
 		{
@@ -316,6 +328,38 @@
       await msgGetHistory();
 		}
 
+    async function kbAddItem(text="", isGiantText=false)
+    {
+      const oaiKey = tb_oai_key.value;
+      window.VectorDB.SetOpenAIApiKey(oaiKey);
+      const title = `${text.substring(0,30)}...`
+      await window.VectorDB.IntegrateText(title, "", text, isGiantText);
+      kbGetTitles();
+    }
+
+    async function kbDeleteItem(docTitle)
+    {
+      let vdb = window.VectorDB;
+      await vdb.DeleteTitle(vdb.DATA_TYPE_KB, docTitle);
+      kbGetTitles();
+    }
+
+    async function kbGetTitles()
+    {
+      let vdb = window.VectorDB;
+      let divDocTItles = document.getElementById("div_user_documents");
+      let listDocTitles = await vdb.GetDocTitles(vdb.DATA_TYPE_KB);
+      let docTitles = "";
+      
+      for (const e of listDocTitles) 
+      {
+        docTitles += `<dt style="font-weight:inherit;"><button style="border:none;background-color:transparent;"onclick="kbDeleteItem('${e}')">X</button>${e}</dt>`
+        //console.log(e)
+      }
+      
+      docTitles = `<dl>${docTitles}</dl>`
+      divDocTItles.innerHTML = docTitles;
+    }
   </script>
 
 
@@ -344,7 +388,7 @@
                             componentName: 'persona_chat'
                         },
                     ],
-                    width: 30
+                    width: 50
                 },
 
                 {
@@ -353,7 +397,7 @@
                     type: 'component',
                     componentName: 'user_documents',
                     }],
-                    width: 30
+                    width: 20
                 },
                 
             ]}
@@ -367,7 +411,7 @@
           <textarea class="form-control" id="tb_persona_brain" rows="25">
           </textarea>
         </div>
-        <div class="d-flex justify-content-end mt-2">
+        <div class="float-end mt-2">
           <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
           <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
         </div>
@@ -389,17 +433,28 @@
           <div id="messages" class="messages">
           </div>
         </div>
-        <div class="user-input mt-2">
+        
+        <div class="hstack gap-2 mt-2" class_="user-input mt-2">
           <input id="message-input" type="text" class="form-control input-text" placeholder="Type your message...">
           <input id="message-send" type="submit" class="btn btn-primary input-submit" value="Send">
         </div>
-        <button class="btn btn-primary" id="btn_load_convo">Load History</button>
-        <button class="btn btn-primary" id="btn_clear_convo">Clear History</button>
+        <div class="mt-2" style="color:white">
+          HISTORY:
+          <button class="btn btn-primary" id="btn_load_convo">Load</button>
+          <button class="btn btn-primary" id="btn_clear_convo">Clear</button>
+          <button class="btn btn-primary" id="btn_get_convo">Get</button>
+        </div>
+        
       `);
       container.on('open', function () {
         $('#message-send').on('click', async function () {
           await msgSend(document.getElementById("message-input").value)
           //console.log("btn_submit_persona_chat");
+        });
+
+        $('#btn_get_convo').on('click', async function () {
+            const obj = await window.idb.GetIDBObject("conversation");
+            window.util.saveAsFile("ynbt-convo.json", obj, document);
         });
 
         $('#btn_load_convo').on('click', async function () {
@@ -410,6 +465,7 @@
           let text = "REALLY clear chat history????";
           if (confirm(text) == true) {
             //text = "You pressed OK!";
+            await msgClearHistory();
             
           } else {
             //text = "You canceled!";
@@ -424,13 +480,20 @@
       container.getElement().html(`
         <div id="div_user_documents">
         </div>
-        <div class="d-flex justify-content-end mt-2">
-          <button class="btn btn-primary" id="btn_user_documents">Generate MD File</button>
+        <div class="mt-2 float-end">
+          <button class="btn btn-primary" id="btn_user_kb_add">Add KB</button>
+          <button class="btn btn-primary" id="btn_user_kb_get">Get KB</button>
         </div>
       `);
       container.on('open', function () {
-        $('#btn_user_documents').on('click', async function () {
-            console.log("btn_user_documents");
+        $('#btn_user_kb_add').on('click', async function () {
+            kb_input_content.value="";
+            dlg_kb_input.showModal();
+        });
+
+        $('#btn_user_kb_get').on('click', async function () {
+            const obj = await window.idb.GetIDBObject("knowledgebase");
+            window.util.saveAsFile("ynbt-kb.json", obj, document);
         });
       });
     });
@@ -445,25 +508,26 @@
         stack.element.find('.lm_popout').addClass('disabled'); // Disable popout button
     })
 
+    //GoldenLayout init stuff
     myLayout.init();
-
-    
-
-    $(window).load(async function() {
-      await load_user_idb();
-    });
-
     $(window).resize(function () {
     myLayout.updateSize((window).width, (window).height);
     });
     
-
-    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
-    //const tb_mermaid_graph_script = document.getElementById("tb_mermaid_graph_script");
-    //const tb_process_and_flow = document.getElementById("tb_process_and_flow");
-    
-
-
+    //DOM finished loading
+    $(window).load(async function() {
+      await load_user_idb();
+      
+      kb_input_content_submit.addEventListener("click", () => {
+        //dlg_kb_input.close("");
+        //console.log(kb_input_content.value);
+        kbAddItem(kb_input_content.value,false);
+      });
+      
+      kb_input_content_cancel.addEventListener("click", () => {
+        dlg_kb_input.close("");
+      });
+    });
   </script>
 
   

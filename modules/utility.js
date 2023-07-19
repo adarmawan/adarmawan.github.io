@@ -58,6 +58,11 @@ export function GetGUIDV4() {
 }
 
 
+export function GetNowUtcString()
+{
+  return new Date(Date.now()).toISOString();
+}
+
 export function GetDateFromTimeStamp(seconds)
 {
    return new Date(seconds*1000).toISOString();
@@ -83,3 +88,11 @@ export async function delay(milliseconds){
 		setTimeout(resolve, milliseconds);
 	});
 }
+
+export function saveAsFile(filename, data, document) {
+  const blob = new Blob([JSON.stringify(data)]);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = window.URL.createObjectURL(blob);
+  link.click()
+};

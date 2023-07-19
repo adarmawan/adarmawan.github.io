@@ -18,6 +18,10 @@ export class VectorDB {
         this.oaiKey = oaiKey;
     }
 
+    SetOpenAIApiKey(oaiKey="OpenAI API Key") {
+        this.oaiKey = oaiKey;
+    }
+
     NewKnowledgeBaseObject(dataType=VectorDB.DATA_TYPE_KB) {
         return {
             dataType: dataType, //conversation OR knowledgebase
@@ -260,22 +264,26 @@ export class VectorDB {
                 finalKB.textChunks = userKnowledgeBaseObj.textChunks.slice()
             }
 
-
-
-            for (var tc of finalKB.textChunks) {
-                const val = math.SimilarityVector(vTest, tc.vectors)
-                var resObj =
+            
+            for (var tc of finalKB.textChunks)
+            {
+                try
                 {
-                    timestamp: tc.timestamp,
-                    id: tc.id,
-                    title: tc.title,
-                    keyConcepts: tc.keyConcepts,
-                    text: tc.text,
-                    val: val
-                }
+                    const val = math.SimilarityVector(vTest, tc.vectors)
+                    var resObj =
+                    {
+                        timestamp: tc.timestamp,
+                        id: tc.id,
+                        title: tc.title,
+                        keyConcepts: tc.keyConcepts,
+                        text: tc.text,
+                        val: val
+                    }
 
-                if (val >= minSimilarityValue)
-                    simTest.push(resObj)
+                    if (val >= minSimilarityValue)
+                        simTest.push(resObj)
+
+                }catch{} //handle invalid entries caused by vector errors
             }
             //SORT HIGH similarity first
             simTest.sort(function (a, b) {

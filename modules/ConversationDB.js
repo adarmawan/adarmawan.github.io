@@ -103,7 +103,7 @@ export class ConversationDB
         resecentDialogToInclude=0,
         userKBToInclude=[""], agenKBToInclude=[""], 
         maxUserKBTokens=500, maxAgentKBTokens=500, maxUserConvoTokens=500,
-        minUserKBSimilarity=0.8,minAgentKBSimilarity=0.8,minConvoSimilarity=0.8
+        minUserKBSimilarity=0.8,minAgentKBSimilarity=0.9,minConvoSimilarity=0.8
         )
     {
         var searchConvo = null;
@@ -121,7 +121,8 @@ export class ConversationDB
             if(searchUserKb!=null)
             {
                 for (const d of searchUserKb) {
-                    userKBContext += `${d.text}\n`;
+                    const d_dt = util.GetDateFromTimeStamp(d.timestamp);
+                    userKBContext += `DateTime:${d_dt}\n${d.text}\n\n`;
                     if(util.GetTokenCount(userKBContext)>=maxUserKBTokens) break;
                 }
             }
@@ -139,8 +140,8 @@ export class ConversationDB
             {
                 let converted = await this.ConvertVDBItemsToDialogs(searchConvo);
                 for (const d of converted) {
-                    const c_dt = util.GetDateFromTimeStamp(d[0]);
-                    userConvoContext += `DateTime:${c_dt}\n${d[1]}\n${d[2]}\n\n`;
+                    const d_dt = util.GetDateFromTimeStamp(d[0]);
+                    userConvoContext += `DateTime:${d_dt}\n${d[1]}\n${d[2]}\n\n`;
                     if(util.GetTokenCount(userConvoContext)>=maxUserConvoTokens) break;
                 }
             }
@@ -153,9 +154,8 @@ export class ConversationDB
             userRecentConvoContext = "";
         }
 
-        
-        const lastDialogs = `${userMessage}\n${brainObj.persona_name}:`;
-        //p_queryContext = `${p_queryContext}\n${userKBContext}${userConvoContext}\n\n${lastDialogs}`;
+        const nowUTC= `DateTime:${util.GetNowUtcString()}`;
+        const lastDialogs = `${nowUTC}\n${userMessage}\n${brainObj.persona_name}:`;
         const p_queryContext = 
 `
 ${p_context_kb}
@@ -163,7 +163,7 @@ ${userKBContext}
 ${p_context_convo}
 ${userConvoContext}
 ${p_context_instruct}
-${brainObj.persona_info}${brainObj.persona_context}
+${brainObj.persona_info}${brainObj.persona_context}\n
 ${lastDialogs}`;
         //p_queryContext = `${userMessage}\n\n${botBrainObj.persona_info}\n\n${botBrainObj.name}:`;
 

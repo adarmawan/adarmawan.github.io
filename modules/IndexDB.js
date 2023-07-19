@@ -31,7 +31,7 @@ export async function SaveIDBObject(idbObj={}) {
     const db = await OpenIDB();
 
     return new Promise((resolve, reject) => {
-        console.log(idbObj);
+        //console.log(idbObj);
         const transaction = db.transaction([idbObj.dataType], 'readwrite');
         const objectStore = transaction.objectStore(idbObj.dataType);
         const request = objectStore.put(idbObj);
