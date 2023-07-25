@@ -248,7 +248,7 @@ Let's do this step-by-step:
           const tb_process_and_flow = document.getElementById("tb_process_and_flow");
           const p_obj = (p_templates.filter(x=>x.name==opt_tasks.value))[0]
           const p_final = p_obj.template.replace("__SECTION_1__", tb_process_and_flow.value);
-          const graphScript = await window.ai.call_oai_completion(p_final, tb_oai_key.value);
+          const graphScript = await window.ai.call_oai_completion("", p_final, tb_oai_key.value);
           dlg_info.close("");
 
           if(!graphScript.includes("[ERROR:"))

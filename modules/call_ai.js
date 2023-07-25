@@ -154,3 +154,77 @@ export async function call_oai_embedding(p_final, oaiKey="")
     return "[ERROR: General]"
     }
 }
+
+/*
+*/
+export async function call_ll2_completion(p_final="", p_stop=["</s>"], stream=true, aiAnswerTextArea=null, temperature=0.5,max_tokens=1024)
+{
+    var payload={
+        "stream":stream,
+        "n_keep":0,
+        "n_predict":max_tokens,
+        "temperature":temperature,
+        "repeat_last_n": 64,
+        "repeat_penalty": 1.1,
+        "top_k": 40,
+        "top_p": 0.9,
+        "stop":p_stop,
+        "prompt":p_final};
+
+    
+    console.log(payload);
+
+    try 
+    {
+        //console.log(payload);return "[ERROR:]";
+
+        const response = await fetch('http://localhost:8080/completion', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+        })
+
+        if(response.status!=200)
+        {
+            const msg = `[ERROR: OAI - ${response.status}]`
+            //alert(msg);
+            return msg;
+        }
+        else
+        {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let rspMsg = "";
+ 
+            while (true) {
+                const result = await reader.read()
+                if (result.done) {
+                    break;
+                }
+
+                let text = (decoder.decode(result.value)).replace("data: ","");
+                //console.log(text)
+                const jObj = JSON.parse(text);
+                //console.log(jObj)
+
+                // Process the current chunk of data
+                rspMsg += jObj.content;
+                aiAnswerTextArea.textContent += jObj.content;
+            }
+
+
+            return rspMsg;
+        }
+
+    
+    } catch (error) {
+    
+        console.log(error)
+        const msg = `[ERROR: General - please check console]`
+        //alert(msg);
+        
+        return msg
+    }
+}
