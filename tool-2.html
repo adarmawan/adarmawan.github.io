@@ -10,9 +10,8 @@
   <link type="text/css" rel="stylesheet" href="standard.css"/>
   <style>
     
-    #div_persona_brain{
-      background-color:white;
-      overflow: hidden;
+    #div_persona_brain_container{
+      height:50%;overflow-x:clip;overflow-y:scroll;padding: 0.5em;
     }
 
     #div_persona_chat{
@@ -43,7 +42,7 @@
   <div class="header hstack gap-3">
     <h6>
       <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="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">
+      <input type="password" class_="form-control" id="tb_oai_key" value="">
     </h6>
   </div>
   
@@ -531,7 +530,7 @@
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
     myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
-        <div id="div_persona_brain_container" style="height:50%;overflow-y:scroll;padding: 0.5em;">
+        <div id="div_persona_brain_container">
         </div>
 
         <!--
