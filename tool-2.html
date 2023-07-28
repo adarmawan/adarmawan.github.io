@@ -151,6 +151,7 @@
   </script>
 
   <!-- My Stuff -->
+  <script src="keys.js"></script>
   <script type="module">
     import * as call_ai from "/modules/call_ai.js"
     import * as idb from "/modules/IndexDB.js"
@@ -650,6 +651,7 @@
     
     //DOM finished loading
     $(window).load(async function() {
+      tb_oai_key.value = my_oaiKey??"";
       await load_user_idb();
 
       kb_input_content_submit.addEventListener("click", () => {
