@@ -80,6 +80,93 @@ export async function call_oai_completion(p_system, p_final="", oaiKey="", tempe
     }
     
 }
+export async function call_oai_completion_stream(p_system, p_final="", oaiKey="", aiAnswerTextArea=null, temperature=1,max_tokens=1024)
+{
+
+    if(oaiKey=="")
+    {
+        const msg = `[ERROR: OAI - API key is empty]`
+        alert(msg);
+        return msg;
+    }
+
+    try 
+    {
+    const oaiPayload={
+        model: "gpt-3.5-turbo",
+        temperature: temperature,
+        max_tokens: max_tokens,
+        stream: true,
+        messages: [
+            { role: "system", content: p_system},
+            { role: "user", content: p_final }
+        ],
+    };
+    //console.log(oaiPayload);return "[ERROR:]";
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json;charset=utf-8',
+        'Authorization':`Bearer ${oaiKey}`
+    },
+    body: JSON.stringify(oaiPayload)
+    })
+
+    if(response.status!=200)
+    {
+        const msg = `[ERROR: OAI - ${response.status}]`
+        //alert(msg);
+        return msg;
+    }
+    else
+    {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let rspMsg = "";
+
+        while (true) 
+        {
+            const result = await reader.read()
+            
+            if (result.done) {
+                break;
+            }
+            
+            let chunks = decoder.decode(result.value).split(`\n`);
+            
+            for (const c of chunks) {
+                try {
+                    let jObj = JSON.parse(c.replace("data: ",""));
+                    if(jObj.choices[0].finish_reason==null)
+                    {
+                        aiAnswerTextArea.textContent += jObj.choices[0].delta.content;
+                        rspMsg += jObj.choices[0].delta.content;
+                    }
+                    
+                } catch (error) {
+                    
+                }
+                
+            }
+        }
+
+
+        return rspMsg;
+    }
+
+    
+    } catch (error) {
+    
+    console.log(error)
+    const msg = `[ERROR: General - please check console]`
+    //alert(msg);
+    
+    return msg
+    }
+    
+}
+
 
 /*
 OAI Embeddings Result Structure:

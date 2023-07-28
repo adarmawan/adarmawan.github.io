@@ -43,7 +43,7 @@
   <div class="header hstack gap-3">
     <h6>
       <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="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">
+      <input type="password" class_="form-control" id="tb_oai_key" value="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">
     </h6>
   </div>
   
@@ -54,8 +54,11 @@
   <dialog id="dlg_kb_input">
     <form method="dialog" style="width: 50vw;">
       
+        <label for="kb_input_title">KB Title <Title></Title></label>
+        <input type="text" id="kb_input_title" name="kb_input_title" style="width:50vw;">
+
         <label for="kb_input_content">KB Content</label>
-        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:49vw;">
+        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:50vw;">
         </textarea>
       
       <div>
@@ -64,6 +67,20 @@
       </div>
     </form>
   </dialog>
+  <dialog id="dlg_persona_input">
+    <form method="dialog" style="width: 50vw;">
+      
+        <label for="persona_input_content">Persona Brain JSON</label>
+        <textarea type="text" id="persona_input_content" name="persona_input_content" rows="20" style="width:50vw;">
+        </textarea>
+      
+      <div>
+        <button id="persona_input_content_cancel" type="reset">Cancel</button>
+        <button id="persona_input_content_submit" type="submit">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="golden-layout-container" id="golden-layout-container"></div>
 
   <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
@@ -72,7 +89,7 @@
 
   <!-- DATA -->
   <script>
-    const persona ={
+    const persona_ ={
       "dataType": "persona",
       "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
       "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
@@ -80,6 +97,7 @@
       
       "user_name": "Arief",
       "persona_name": "Lisa",
+
       "load_history_items":10,
       "inference_msv_kb_base":0.8,
       "inference_msv_kb_chat":0.8,
@@ -88,7 +106,17 @@
       "inference_items_recent_chats":5,
   };
 
-    const conversation={
+  const persona ={
+      "dataType": "persona",
+      "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
+      "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
+      "greetings":"Talk to me, and I will remember.",
+      
+      "user_name": "Arief",
+      "persona_name": "Lisa"
+  };
+  
+  const conversation={
     "dataType":"conversation",
     "references": [
       "First conversation"
@@ -105,7 +133,7 @@
     ]
   };
   
-    const knowledgebase={
+  const knowledgebase={
     "dataType":"knowledgebase",
     "references": [
       "General Knowledge"
@@ -131,6 +159,9 @@
     import {VectorDB} from "/modules/VectorDB.js";
     import {ConversationDB} from "/modules/ConversationDB.js";
 
+    idb.SetDBName("ynbt-lite-AI_Agent")
+    //idb.SetDBName("ynbt-lite")
+    //idb.SaveIDBObject2("persona", persona)
     window.call_ai = call_ai;
     window.idb = idb;
     window.util = util;
@@ -145,14 +176,102 @@
     const tb_oai_key = document.getElementById("tb_oai_key");
     
     const dlg_kb_input = document.getElementById("dlg_kb_input");
+    const kb_input_title = document.getElementById("kb_input_title");
+    const kb_input_content = document.getElementById("kb_input_content");
     const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
     const kb_input_content_submit = document.getElementById("kb_input_content_submit");
     dlg_kb_input.returnValue = "kb_input_content";
+
+    const dlg_persona_input = document.getElementById("dlg_persona_input");
+    const persona_input_content = document.getElementById("persona_input_content");
+    const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
+    const persona_input_content_submit = document.getElementById("persona_input_content_submit");
+    dlg_persona_input.returnValue = "persona_input_content";
   </script>
 
 
   <!-- FUNCTIONS -->
   <script>
+    function renderJSONInputForm(divContainerId="", formName="",dataObject={})
+    {
+      // Get the container element to hold the form
+      var formContainer = document.getElementById(divContainerId);
+
+      const t_form =
+      `<form id="form_${formName}">
+        _CONTENT_
+        </form>
+      `;
+      const t_input_textArea = 
+      `
+        <div class="mb-3" style="color:white">
+          <label for="_INPUT_NAME_" class="form-label">_INPUT_NAME_</label>
+          <div class="">
+            <textarea class="form-control" id="_INPUT_NAME_" rows="3">_VALUE_</textarea>
+          </div>
+        </div>
+      `
+      const t_input_text = 
+      `
+        <div class="row mb-3" style="color:white">
+          <label for="_INPUT_NAME_" class="form-label col-sm-5 col-form-label ">_INPUT_NAME_</label>
+          <div class="col-sm-5">
+            <input type="text" id="_INPUT_NAME_" value="_VALUE_">
+          </div>
+        </div>
+      `
+      var h_form_content = "";
+      // Loop through each property in the dataObject
+      for (var key in dataObject) 
+      {
+          if (dataObject.hasOwnProperty(key)) 
+          {
+            let data = dataObject[key];
+            if (typeof data === 'string' || data instanceof String)
+            {
+              if(data.length>20)
+              {
+                h_form_content += t_input_textArea
+                              .replaceAll("_INPUT_NAME_", key)
+                              .replaceAll("_VALUE_", data)
+              }
+              else
+              {
+                h_form_content += t_input_text
+                              .replaceAll("_INPUT_NAME_", key)
+                              .replaceAll("_VALUE_", data)
+              }
+              
+            }
+            else
+            {
+              h_form_content += t_input_text
+                              .replaceAll("_INPUT_NAME_", key)
+                              .replaceAll("_VALUE_", dataObject[key])
+            }
+            
+          }
+      }
+      var h_form = t_form.replace("_CONTENT_", h_form_content);
+      formContainer.innerHTML = h_form;
+      //console.log(h_form)
+    }
+    
+    function getJSONInputFormData(formName="") 
+    {
+        var formElement = document.getElementById(`form_${formName}`);
+        var inputs = formElement.querySelectorAll("input[type='text'], textarea");
+        var formData = {};
+
+        inputs.forEach(function (input) {
+            var key = input.id;
+            var value = input.value;
+            formData[key] = value;
+        });
+
+        return formData;
+    }
+
     function scrollMessageToBottom()
 		{
 			var objDiv = document.getElementById("messages");
@@ -164,7 +283,8 @@
       const u_p = await window.idb.GetIDBObject("persona");
       if(u_p!=null)
       {
-        document.getElementById('tb_persona_brain').value = JSON.stringify(u_p,null,2);
+        renderJSONInputForm("div_persona_brain_container", "persona_brain", u_p);
+        //console.log(getJSONInputFormData("persona_brain"));
       }
       else
       {
@@ -196,11 +316,9 @@
 
     async function update_user_persona()
     {
-      const temp = document.getElementById('tb_persona_brain').value;
       try
       {
-        const u_p = JSON.parse(temp)
-        await window.idb.SaveIDBObject(u_p)
+        await window.idb.SaveIDBObject(getJSONInputFormData("persona_brain"));
       }catch{
         alert("Invalid JSON Structure")
       }
@@ -211,7 +329,8 @@
 		{
 			var message = JSON.parse(data);
 			message.timestamp = new Date(message.timestamp*1000).toISOString();
-			
+			const rspMsgId = util.GetTimeStamp();
+      
 			const msgText = message.text
 								   .replaceAll("\"","")
 								   //.replaceAll(`${userName}:`,"")
@@ -222,16 +341,16 @@
 								   //.replaceAll(".",".<br>")
 								   .replaceAll("\n","<br>");
 			
-			var msg = 
+			let msg = 
 			`<div class="_MSG_CLASS_">
-			<p>_MSG_TEXT_</p>
+			<p id="_BOT_RSP_ID_">_MSG_TEXT_</p>
 			<span class="_TIME_CLASS_">_TIMESTAMP_</span>
 			_BUTTONS_
 			</div>`
 			
-			const buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
+			let buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
 			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
-      const buttons =`<button onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
+      let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
 			
 			msg = msg.replace("_MSG_TEXT_", msgText)
 			if(message.from === 'me')
@@ -244,6 +363,8 @@
 			}
 			else
 			{
+        buttons = buttons.replaceAll("_BOT_RSP_ID_", rspMsgId)
+        msg = msg.replaceAll("_BOT_RSP_ID_", rspMsgId)
 				msg = msg.replaceAll("_BUTTONS_", buttons)
 				msg = msg.replace("_MSG_CLASS_", `message`)
 				msg = msg.replace("_TIMESTAMP_", message.timestamp)
@@ -253,14 +374,14 @@
 			
 			const messagesDiv = document.getElementById('messages');
 			//const messageDiv = document.createElement('div');
-			messagesDiv.innerHTML += msg
-			scrollMessageToBottom()
+			messagesDiv.innerHTML += msg;
+			scrollMessageToBottom();
+
+      return rspMsgId;
 		};
 
     async function msgSend(input="")
     {
-      const userMsg = input==null ? '':`${persona.user_name}:${input.trim()}`;
-
       const oaiKey = tb_oai_key.value;
       if(oaiKey=="")
       {
@@ -269,35 +390,38 @@
           return;
       }
       window.ConversationDB.SetOpenAIApiKey(oaiKey);
+
+      const userMsg = input==null ? '':`${persona.user_name}:${input.trim()}`;
       
-      dlg_info.showModal();
-      const brain = JSON.parse(document.getElementById('tb_persona_brain').value);
-      let p_system = brain.persona_info;
-      let p_user = await window.ConversationDB.ConstructQueryContext(brain, userMsg, 5,)
-      //console.log(p_user);
+      const brain = getJSONInputFormData("persona_brain");
+      let p_user = await window.ConversationDB.ConstructQueryContext("CGPT", brain, userMsg, 10)
+      console.log(p_user);
+
+      var newId = window.util.GetTimeStamp();
+      render_msg(JSON.stringify({timestamp:newId, dialogId:newId, text: userMsg, from: 'me'}));
+      const rspMsgId = render_msg(JSON.stringify({timestamp:newId, dialogId:newId, text: "", from: 'bot'}));
+      const rspMsgTextArea = document.getElementById(rspMsgId);
+      //console.log(rspMsgTextArea);
 
       
-      //let rsp = await window.call_ai.call_oai_completion(p_system, p_user, oaiKey);
-      let rsp = await window.call_ai.call_oai_completion("", p_user, oaiKey, 0.7, 256);
+      //let rsp = await window.call_ai.call_ll2_completion(p_final,p_stop=["</s>", brain.user_name+":"], true,rspMsgTextArea,0.9, 256);
+      const i_t = Number(brain.inference_temperature ?? 0.7);
+      let rsp = await window.call_ai.call_oai_completion_stream("", p_user, oaiKey, rspMsgTextArea, i_t, 256);
+      
       if(rsp.includes("[ERROR"))
       {
         alert(rsp);
       }
       else
       {
+        rsp = window.util.CleanDateTimeISO(rsp);
         rsp = rsp.replaceAll(persona.persona_name+":","").trim();
         const botMsg = `${persona.persona_name}:${rsp}`;
+        rspMsgTextArea.textContent = botMsg;
 
         const newId = await window.ConversationDB.AddDialog(userMsg,botMsg);
-
-        render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), dialogId:newId, text: userMsg, from: 'me'}));
-        render_msg(JSON.stringify({timestamp:window.util.GetTimeStamp(), dialogId:newId, text: botMsg, from: 'bot'}));
-        
+        document.getElementById(rspMsgId).setAttribute('onclick',`click_delete_dialog('${newId}')`)        
       }
-      
-
-      dlg_info.close("");
-
     }
 
     async function msgGetHistory()
@@ -407,22 +531,32 @@
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
     myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
+        <div id="div_persona_brain_container" style="height:50%;overflow-y:scroll;padding: 0.5em;">
+        </div>
+
+        <!--
         <div id="div_persona_brain">
           <textarea class="form-control" id="tb_persona_brain" rows="25">
           </textarea>
         </div>
+        -->
         <div class="float-end mt-2">
           <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
           <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
+          <button class="btn btn-primary" id="btn_import_persona_brain">Import</button>
         </div>
       `);
       container.on('open', function () {
         $('#btn_default_persona_brain').on('click', async function () {
-          document.getElementById('tb_persona_brain').value = JSON.stringify(persona, null, 2);
+          renderJSONInputForm("div_persona_brain_container", "persona_brain", persona);
         });
         $('#btn_save_persona_brain').on('click', async function () {
-          //document.getElementById('tb_persona_brain').value = JSON.stringify(persona, null, 2);
           update_user_persona();
+        });
+        $('#btn_import_persona_brain').on('click', async function () {
+          const brain = getJSONInputFormData("persona_brain");
+          persona_input_content.value=JSON.stringify(brain,null,2);
+          dlg_persona_input.showModal();
         });
       });
     });
@@ -487,7 +621,8 @@
       `);
       container.on('open', function () {
         $('#btn_user_kb_add').on('click', async function () {
-            kb_input_content.value="";
+            kb_input_title.value = "General Knowledge";
+            kb_input_content.value = "";
             dlg_kb_input.showModal();
         });
 
@@ -511,22 +646,39 @@
     //GoldenLayout init stuff
     myLayout.init();
     $(window).resize(function () {
-    myLayout.updateSize((window).width, (window).height);
+      myLayout.updateSize((window).width, (window).height);
     });
     
     //DOM finished loading
     $(window).load(async function() {
       await load_user_idb();
-      
+
       kb_input_content_submit.addEventListener("click", () => {
-        //dlg_kb_input.close("");
-        //console.log(kb_input_content.value);
         kbAddItem(kb_input_content.value,false);
       });
       
       kb_input_content_cancel.addEventListener("click", () => {
         dlg_kb_input.close("");
       });
+
+      persona_input_content_submit.addEventListener("click", () => {
+        //kbAddItem(kb_input_content.value,false);
+
+        try {
+          let persona = persona_input_content.value;
+          //console.log(persona);
+          renderJSONInputForm("div_persona_brain_container", "persona_brain", JSON.parse(persona));
+        } catch (error) {
+          alert("Invalid JSON Format");
+        }
+        
+        dlg_persona_input.close("");
+      });
+      
+      persona_input_content_cancel.addEventListener("click", () => {
+        dlg_persona_input.close("");
+      });
+
     });
   </script>
 

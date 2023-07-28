@@ -4,6 +4,14 @@ const RexSearchWhitespaces = new RegExp(/\s+/g)
 const RexSearchNewLines = new RegExp(/(\r\n|\n|\r)/gm)
 const RexSearchAlphaNumeric = new RegExp(/[^a-zA-Z0-9\s]/g)
 const RexSearchAlphaNumericAndComa = new RegExp(/[^a-zA-Z0-9 ,]/g)
+const RexSearchDateTimeISO =  new RegExp(/DateTime: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g);
+
+
+export function CleanDateTimeISO(text="")
+{
+  return text.replace(RexSearchDateTimeISO, ""); //remove DateTimeIso from string like this "Lisa:DateTime: 2023-07-24T10:17:19.000Z and other content";
+}
+
 
 export function CleanNumbersInsideBrackets(text="")
 {

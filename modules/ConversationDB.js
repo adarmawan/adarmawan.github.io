@@ -98,19 +98,41 @@ export class ConversationDB
     + Current_dialog_pair_0: {user:messages, bot:???}
 
     */
-    async ConstructQueryContext(brainObj={},
+    async ConstructQueryContext(promptTemplateName="CGPT", brainObj={},
         userMessage="userName:message",
-        resecentDialogToInclude=0,
+        recentDialogToInclude=0,
         userKBToInclude=[""], agenKBToInclude=[""], 
         maxUserKBTokens=500, maxAgentKBTokens=500, maxUserConvoTokens=500,
         minUserKBSimilarity=0.8,minAgentKBSimilarity=0.9,minConvoSimilarity=0.8
         )
     {
-        var searchConvo = null;
+        
+        const LLMPromptTemplate=
+        [
+            {
+                "name": "CGPT",
+                "template": "_LABLE_USER_KB_\n_RELEVANT_USER_KB_\n_LABLE_PAST_USER_CONVO_\n_RELEVANT_PAST_USER_CONVO_\n_LABLE_INSTRUCTION_\n_PERSONA_INFO__PERSONA_CONTEXT__CURRENT_DATETIME_\n_LAST_USER_CONVO_",
+                "switches": {dialog_include_timestamp:true}
+            },
+            {
+                "name":"LL2_CHAT_1",
+                "template":"[INST] <<SYS>>\n_PERSONA_INFO__PERSONA_CONTEXT__CURRENT_DATETIME_\n_RELEVANT_USER_KB_\n<</SYS>>\n\n_RELEVANT_PAST_USER_CONVO__LAST_USER_CONVO_ [/INST]",
+                "switches": {dialog_include_timestamp:false}
+            },
+        ];
+        var p_queryContext = "";
+        var p_q_o = LLMPromptTemplate.filter(x=>x.name==promptTemplateName);
+        if(p_q_o==null) return "[ERROR]";
+        else p_queryContext = p_q_o[0].template;
+        
+        
+        var combinedUserConvo = [];
+        var latestUserConvo = null;
+        var searchUserConvo = null;
         var searchUserKb = null;
-        var p_context_kb = "===KNOWLEDGEBASE";
-        var p_context_convo = "===PAST CONVERSATIONS";
-        var p_context_instruct = "===INSTRUCTION";
+        var _LABLE_USER_KB_ = "===KNOWLEDGEBASE";
+        var _LABLE_PAST_USER_CONVO_ = "===PAST CONVERSATIONS";
+        var _LABLE_INSTRUCTION_ = "===INSTRUCTION";
         const userMsgVectors = await this.vdb.GetSentenceVectors(userMessage);
 
         var userKBContext = "";
@@ -118,56 +140,83 @@ export class ConversationDB
         {
             //console.log(`${pathUserKnowledgeBase}--${userMessage}--${maxUserKBTokens}--${minUserKBSimilarity}`)
             searchUserKb = await this.vdb.Search(VectorDB.DATA_TYPE_KB, userMsgVectors,userMessage,userKBToInclude,[""],minUserKBSimilarity,10);
+
+
             if(searchUserKb!=null)
             {
                 for (const d of searchUserKb) {
                     const d_dt = util.GetDateFromTimeStamp(d.timestamp);
-                    userKBContext += `DateTime:${d_dt}\n${d.text}\n\n`;
+                    //userKBContext += `DateTime:${d_dt}\n${d.text}\n\n`;
+                    userKBContext += `${d.text}\n`;
                     if(util.GetTokenCount(userKBContext)>=maxUserKBTokens) break;
                 }
             }
             
-            if(userKBContext=="") userKBContext=`No knowledgebase found.\n`
+            userKBContext = userKBContext.trim();
+            //if(userKBContext=="") userKBContext=`No knowledgebase found.\n`
         }
         
-
+        let userConvoItemsId = [];
         var userConvoContext = "";
-        if(maxUserConvoTokens>0)
+        if(recentDialogToInclude>0)
         {
-            //console.log(`${pathUserKnowledgeBase}--${userMessage}--${minUserKBSimilarity}`)
-            searchConvo = await this.vdb.Search(VectorDB.DATA_TYPE_CONVO, userMsgVectors,userMessage,userKBToInclude,[""],minUserKBSimilarity,10);
-            if(searchConvo!=null)
+            latestUserConvo = await this.vdb.GetLatest(VectorDB.DATA_TYPE_CONVO, recentDialogToInclude);
+            if(latestUserConvo!=null)
             {
-                let converted = await this.ConvertVDBItemsToDialogs(searchConvo);
+                let converted = await this.ConvertVDBItemsToDialogs(latestUserConvo);
                 for (const d of converted) {
-                    const d_dt = util.GetDateFromTimeStamp(d[0]);
-                    userConvoContext += `DateTime:${d_dt}\n${d[1]}\n${d[2]}\n\n`;
-                    if(util.GetTokenCount(userConvoContext)>=maxUserConvoTokens) break;
+                    userConvoItemsId.push(d[0]);
+                    combinedUserConvo.push(d);
                 }
             }
-            if(userConvoContext=="") userConvoContext=`No conversation found.\n`
         }
-
-        var userRecentConvoContext = "";
-        if(resecentDialogToInclude>0)
+        if(maxUserConvoTokens>0) 
         {
-            userRecentConvoContext = "";
+            //console.log(`${pathUserKnowledgeBase}--${userMessage}--${minUserKBSimilarity}`)
+            searchUserConvo = await this.vdb.Search(VectorDB.DATA_TYPE_CONVO, userMsgVectors, userMessage, userKBToInclude, [""], minUserKBSimilarity, 10);
+            if (searchUserConvo != null) {
+                let converted = await this.ConvertVDBItemsToDialogs(searchUserConvo);
+                for (const d of converted) {
+                    if (userConvoItemsId.find(x => x == d[0]) == null) {
+                        combinedUserConvo.push(d);
+                        console.log(d[0]);
+                    }
+                }
+            }
         }
 
-        const nowUTC= `DateTime:${util.GetNowUtcString()}`;
-        const lastDialogs = `${nowUTC}\n${userMessage}\n${brainObj.persona_name}:`;
-        const p_queryContext = 
-`
-${p_context_kb}
-${userKBContext}
-${p_context_convo}
-${userConvoContext}
-${p_context_instruct}
-${brainObj.persona_info}${brainObj.persona_context}\n
-${lastDialogs}`;
-        //p_queryContext = `${userMessage}\n\n${botBrainObj.persona_info}\n\n${botBrainObj.name}:`;
+        combinedUserConvo.sort(function (a, b) {
+            return a[0] - b[0];
+        });
+        for (const d of combinedUserConvo) 
+        {
+            const d_dt = util.GetDateFromTimeStamp(d[0]);
+            if(p_q_o[0].switches.dialog_include_timestamp)
+                userConvoContext += `DateTime:${d_dt}\n${d[1]}\n${d[2]}\n\n`; //LLama2 gak bisa begini
+            else
+                userConvoContext += `${d[1]}\n${d[2]}\n\n`;
+        }
 
-        console.log(`[ ConstructQueryContext ]\n${p_queryContext}\n!!TokenCount:${util.GetTokenCount(p_queryContext)}`)
+
+        const nowUTC = util.GetNowUtcString();
+        const currentDateTime = `Current date and time is ${nowUTC}` ;
+        var lastDialogs = "";
+        if(p_q_o[0].switches.dialog_include_timestamp)
+            lastDialogs = `DateTime:${nowUTC}\n${userMessage}\n${brainObj.persona_name}:`;
+        else
+            lastDialogs = `${userMessage}\n${brainObj.persona_name}:`;
+        
+        p_queryContext = p_queryContext
+                        .replace("_LABLE_USER_KB_", _LABLE_USER_KB_)
+                        .replace("_RELEVANT_USER_KB_", userKBContext)
+                        .replace("_LABLE_PAST_USER_CONVO_", _LABLE_PAST_USER_CONVO_)
+                        .replace("_RELEVANT_PAST_USER_CONVO_", userConvoContext)
+                        .replace("_LABLE_INSTRUCTION_", _LABLE_INSTRUCTION_)
+                        .replace("_PERSONA_INFO_", brainObj.persona_info)
+                        .replace("_PERSONA_CONTEXT_", brainObj.persona_context)
+                        .replace("_CURRENT_DATETIME_", currentDateTime)
+                        .replace("_LAST_USER_CONVO_", lastDialogs)
+
         return p_queryContext;
     }
 

@@ -1,6 +1,10 @@
-const IDB_NAME = "ynbt-lite";
+var IDB_NAME = "ynbt-lite";
 const IDB_STORES = ["persona","conversation","knowledgebase"];
 
+export function SetDBName(dbName=IDB_NAME)
+{
+    IDB_NAME = dbName;
+}
 // Function to open the IndexedDB
 export async function OpenIDB() {
     return new Promise((resolve, reject) => {
@@ -45,6 +49,25 @@ export async function SaveIDBObject(idbObj={}) {
         };
     });
 }
+export async function SaveIDBObject2(kp="", idbObj={}) {
+    const db = await OpenIDB();
+   
+    return new Promise((resolve, reject) => {
+        //console.log(idbObj);
+        const transaction = db.transaction([kp], 'readwrite');
+        const objectStore = transaction.objectStore(kp);
+        const request = objectStore.put(idbObj);
+    
+        request.onerror = (event) => {
+            reject(event.target.error);
+        };
+    
+        request.onsuccess = () => {
+            resolve();
+        };
+    });
+}
+
 
 // Function to retrieve the vdbObj from IndexedDB
 export async function GetIDBObject(dataType="") {
