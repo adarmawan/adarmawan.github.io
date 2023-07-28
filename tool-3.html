@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Chat With Your PDFs</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
+  <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
+  <link type="text/css" rel="stylesheet" href="standard.css"/>
+  <style>
+    
+    #div_persona_brain_container{
+      height:50%;overflow-x:clip;overflow-y:scroll;padding: 0.5em;
+    }
+
+    #div_persona_chat{
+      flex: 1;
+			background-color: #c1bebe;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			_justify-content: center;
+			padding: 10px;
+      height: 85%;
+    }
+
+    #div_user_documents{
+      background-color:white;
+      overflow: scroll;
+      height: 90%;
+      padding: 0.5em;
+    }
+
+    .disabled {
+      pointer-events: none !important;
+      opacity: 0.5 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="header hstack gap-3">
+    <h6>
+      <label for="tb_oai_key">OAI Key:</label>
+      <input type="password" class_="form-control" id="tb_oai_key" value="">
+      <label for="file_import_json" class="button-label">Import JSON Data</label>
+      <input type="file" id="file_import_json" style="display: none;">
+    </h6>
+  </div>
+  
+  <!-- pop-up dialog box, information -->
+  <dialog id="dlg_info">
+    <h1> Requesting to OpenAI </h1>
+  </dialog>
+  <dialog id="dlg_kb_input">
+    <form method="dialog" style="width: 50vw;">
+      
+        <label for="kb_input_title">KB Title <Title></Title></label>
+        <input type="text" id="kb_input_title" name="kb_input_title" style="width:50vw;">
+
+        <label for="kb_input_content">KB Content</label>
+        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:50vw;">
+        </textarea>
+      
+      <div>
+        <button id="kb_input_content_cancel" type="reset">Cancel</button>
+        <button id="kb_input_content_submit" type="submit">Submit</button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="dlg_persona_input">
+    <form method="dialog" style="width: 50vw;">
+      
+        <label for="persona_input_content">Persona Brain JSON</label>
+        <textarea type="text" id="persona_input_content" name="persona_input_content" rows="20" style="width:50vw;">
+        </textarea>
+      
+      <div>
+        <button id="persona_input_content_cancel" type="reset">Cancel</button>
+        <button id="persona_input_content_submit" type="submit">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="golden-layout-container" id="golden-layout-container"></div>
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+  <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
+  
+
+  <!-- DATA -->
+  <script>
+   const persona ={
+      "dataType": "persona",
+      "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
+      "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant.",
+      
+      "user_name": "Arief",
+      "persona_name": "Lisa"
+  };
+  
+  const conversation={
+    "dataType":"conversation",
+    "references": [
+      "First conversation"
+    ],
+    "textChunks": [
+      {
+        "id": "85d192b3-a956-498b-81ef-32ae82a4fba6",
+        "timestamp": 1687228394,
+        "title": "First conversation",
+        "keyConcepts": [""],
+        "text": "User:Hello there!<|D|>Persona:*looking up from my book* Hi User, what can I help you with today?",
+        "vectors":[0,0,0]
+      }
+    ]
+  };
+  
+  const knowledgebase={
+    "dataType":"knowledgebase",
+    "references": [
+      "General Knowledge"
+    ],
+    "textChunks": [
+      {
+        "id": "85d192b3-a956-498b-81ef-32ae82a4fba6",
+        "timestamp": 1687228394,
+        "title": "General Knowledge",
+        "keyConcepts": [""],
+        "text": "The current year is 2023",
+        "vectors":[0,0,0]
+      }
+    ]
+  };
+  </script>
+
+  <!-- My Stuff -->
+  <script src="keys.js"></script>
+  <script type="module">
+    import * as call_ai from "/modules/call_ai.js"
+    import * as idb from "/modules/IndexDB.js"
+    import * as util from '/modules/utility.js';
+    import {VectorDB} from "/modules/VectorDB.js";
+    import {ConversationDB} from "/modules/ConversationDB.js";
+
+    idb.SetDBName("ynbt-lite-AI_PDF_CHAT")
+    window.call_ai = call_ai;
+    window.idb = idb;
+    window.util = util;
+    window.VectorDB = new VectorDB();
+    window.ConversationDB = new ConversationDB();
+  </script>
+  
+
+  <!-- UI Objects -->
+  <script>
+    const dlg_info = document.getElementById("dlg_info");
+    const tb_oai_key = document.getElementById("tb_oai_key");
+    
+    const dlg_kb_input = document.getElementById("dlg_kb_input");
+    const kb_input_title = document.getElementById("kb_input_title");
+    const kb_input_content = document.getElementById("kb_input_content");
+    const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
+    const kb_input_content_submit = document.getElementById("kb_input_content_submit");
+    dlg_kb_input.returnValue = "kb_input_content";
+
+    const dlg_persona_input = document.getElementById("dlg_persona_input");
+    const persona_input_content = document.getElementById("persona_input_content");
+    const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
+    const persona_input_content_submit = document.getElementById("persona_input_content_submit");
+    dlg_persona_input.returnValue = "persona_input_content";
+  </script>
+
+
+  <!-- FUNCTIONS -->
+  <script>
+    function renderJSONInputForm(divContainerId="", formName="",dataObject={})
+    {
+      // Get the container element to hold the form
+      var formContainer = document.getElementById(divContainerId);
+
+      const t_form =
+      `<form id="form_${formName}">
+        _CONTENT_
+        </form>
+      `;
+      const t_input_textArea = 
+      `
+        <div class="mb-3" style="color:white">
+          <label for="_INPUT_NAME_" class="form-label">_INPUT_NAME_</label>
+          <div class="">
+            <textarea class="form-control" id="_INPUT_NAME_" rows="3">_VALUE_</textarea>
+          </div>
+        </div>
+      `
+      const t_input_text = 
+      `
+        <div class="row mb-3" style="color:white">
+          <label for="_INPUT_NAME_" class="form-label col-sm-5 col-form-label ">_INPUT_NAME_</label>
+          <div class="col-sm-5">
+            <input type="text" id="_INPUT_NAME_" value="_VALUE_">
+          </div>
+        </div>
+      `
+      var h_form_content = "";
+      // Loop through each property in the dataObject
+      for (var key in dataObject) 
+      {
+          if (dataObject.hasOwnProperty(key)) 
+          {
+            let data = dataObject[key];
+            if (typeof data === 'string' || data instanceof String)
+            {
+              if(data.length>20)
+              {
+                h_form_content += t_input_textArea
+                              .replaceAll("_INPUT_NAME_", key)
+                              .replaceAll("_VALUE_", data)
+              }
+              else
+              {
+                h_form_content += t_input_text
+                              .replaceAll("_INPUT_NAME_", key)
+                              .replaceAll("_VALUE_", data)
+              }
+              
+            }
+            else
+            {
+              h_form_content += t_input_text
+                              .replaceAll("_INPUT_NAME_", key)
+                              .replaceAll("_VALUE_", dataObject[key])
+            }
+            
+          }
+      }
+      var h_form = t_form.replace("_CONTENT_", h_form_content);
+      formContainer.innerHTML = h_form;
+      //console.log(h_form)
+    }
+    
+    function getJSONInputFormData(formName="") 
+    {
+        var formElement = document.getElementById(`form_${formName}`);
+        var inputs = formElement.querySelectorAll("input[type='text'], textarea");
+        var formData = {};
+
+        inputs.forEach(function (input) {
+            var key = input.id;
+            var value = input.value;
+            formData[key] = value;
+        });
+
+        return formData;
+    }
+
+    function scrollMessageToBottom()
+		{
+			var objDiv = document.getElementById("messages");
+			objDiv.scrollTop = objDiv.scrollHeight;
+		}
+
+    async function load_user_idb()
+    {
+      const u_p = await window.idb.GetIDBObject("persona");
+      if(u_p!=null)
+      {
+        renderJSONInputForm("div_persona_brain_container", "persona_brain", u_p);
+        //console.log(getJSONInputFormData("persona_brain"));
+      }
+      else
+      {
+        await window.idb.SaveIDBObject(persona)
+      }
+
+      const u_c = await window.idb.GetIDBObject("conversation");
+      if(u_c!=null)
+      {
+        //document.getElementById('tb_persona_brain').value = u_p;
+        await msgGetHistory();
+      }
+      else
+      {
+        await window.idb.SaveIDBObject(conversation)
+      }
+
+      const u_k = await window.idb.GetIDBObject("knowledgebase");
+      if(u_k!=null)
+      {
+        await kbGetTitles();
+      }
+      else
+      {
+        await window.idb.SaveIDBObject(knowledgebase)
+      }
+
+    }
+
+    async function update_user_persona()
+    {
+      try
+      {
+        await window.idb.SaveIDBObject(getJSONInputFormData("persona_brain"));
+      }catch{
+        alert("Invalid JSON Structure")
+      }
+      
+    }
+    
+    function render_msg(data)
+		{
+			var message = JSON.parse(data);
+			message.timestamp = new Date(message.timestamp*1000).toISOString();
+			const rspMsgId = util.GetTimeStamp();
+      
+			const msgText = message.text
+								   .replaceAll("\"","")
+								   //.replaceAll(`${userName}:`,"")
+								   //.replaceAll(`${botName}:`,"")
+								   .replaceAll(`U:`,"")
+								   .replaceAll(`B:`,"")
+								   .replaceAll(".*","*")
+								   //.replaceAll(".",".<br>")
+								   .replaceAll("\n","<br>");
+			
+			let msg = 
+			`<div class="_MSG_CLASS_">
+			<p id="_BOT_RSP_ID_">_MSG_TEXT_</p>
+			<span class="_TIME_CLASS_">_TIMESTAMP_</span>
+			_BUTTONS_
+			</div>`
+			
+			let buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
+			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
+      let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
+			
+			msg = msg.replace("_MSG_TEXT_", msgText)
+			if(message.from === 'me')
+			{
+				msg = msg.replaceAll("_BUTTONS_", "")
+				msg = msg.replace("_MSG_CLASS_", `message message-dark`)
+				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIME_CLASS_", `time-left`)
+				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)
+			}
+			else
+			{
+        buttons = buttons.replaceAll("_BOT_RSP_ID_", rspMsgId)
+        msg = msg.replaceAll("_BOT_RSP_ID_", rspMsgId)
+				msg = msg.replaceAll("_BUTTONS_", buttons)
+				msg = msg.replace("_MSG_CLASS_", `message`)
+				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIME_CLASS_", `time-right`)
+				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
+			}
+			
+			const messagesDiv = document.getElementById('messages');
+			//const messageDiv = document.createElement('div');
+			messagesDiv.innerHTML += msg;
+			scrollMessageToBottom();
+
+      return rspMsgId;
+		};
+
+    async function msgSend(input="")
+    {
+      const oaiKey = tb_oai_key.value;
+      if(oaiKey=="")
+      {
+          const msg = `[ERROR: OAI - API key is empty]`
+          alert(msg);
+          return;
+      }
+      window.ConversationDB.SetOpenAIApiKey(oaiKey);
+
+      const userMsg = input==null ? '':`${persona.user_name}:${input.trim()}`;
+      
+      const brain = getJSONInputFormData("persona_brain");
+      let p_user = await window.ConversationDB.ConstructQueryContext("CGPT", brain, userMsg, 10)
+      console.log(p_user);
+
+      var newId = window.util.GetTimeStamp();
+      render_msg(JSON.stringify({timestamp:newId, dialogId:newId, text: userMsg, from: 'me'}));
+      const rspMsgId = render_msg(JSON.stringify({timestamp:newId, dialogId:newId, text: "", from: 'bot'}));
+      const rspMsgTextArea = document.getElementById(rspMsgId);
+      //console.log(rspMsgTextArea);
+
+      
+      //let rsp = await window.call_ai.call_ll2_completion(p_final,p_stop=["</s>", brain.user_name+":"], true,rspMsgTextArea,0.9, 256);
+      const i_t = Number(brain.inference_temperature ?? 0.7);
+      let rsp = await window.call_ai.call_oai_completion_stream("", p_user, oaiKey, rspMsgTextArea, i_t, 256);
+      
+      if(rsp.includes("[ERROR"))
+      {
+        alert(rsp);
+      }
+      else
+      {
+        rsp = window.util.CleanDateTimeISO(rsp);
+        rsp = rsp.replaceAll(persona.persona_name+":","").trim();
+        const botMsg = `${persona.persona_name}:${rsp}`;
+        rspMsgTextArea.textContent = botMsg;
+
+        const newId = await window.ConversationDB.AddDialog(userMsg,botMsg);
+        document.getElementById(rspMsgId).setAttribute('onclick',`click_delete_dialog('${newId}')`)        
+      }
+    }
+
+    async function msgGetHistory()
+    {
+      document.getElementById("messages").innerHTML = "";
+
+      const oaiKey = tb_oai_key.value;
+      window.ConversationDB.SetOpenAIApiKey(oaiKey);
+      const dialogs = await window.ConversationDB.GetHistory(10);
+
+      for (const dialog of dialogs) 
+			{
+        render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[1], from: 'me'}));
+				render_msg(JSON.stringify({timestamp:dialog[0], dialogId:dialog[3], text: dialog[2], from: 'bot'}));
+			}
+    }
+
+    async function msgClearHistory()
+    {
+      await window.idb.SaveIDBObject(conversation);
+    }
+    
+    async function msgImportHistory(contents)
+    {
+      try 
+          {
+            const data = JSON.parse(contents);
+            const dataType = data.dataType ?? "";
+
+            if(dataType!="conversation" && dataType!="persona" && dataType!="knowledgebase")
+            {
+              alert("Invalid JSON File");
+            }
+            else
+            {
+              const userRsp = confirm(`Replace ${dataType.toUpperCase()} with this JSON ?`);
+              if(userRsp)
+              {
+                //console.log(data);
+                await window.idb.SaveIDBObject(data);
+                alert("Finished importing JSON file");
+                location.reload();
+              }
+              else
+              {
+                location.reload();
+              }
+              
+            }
+            
+          } catch (error) {
+            alert("Invalid JSON File")
+          }
+
+    }
+    
+    async function click_delete_dialog(dialog_id)
+		{
+			const oaiKey = tb_oai_key.value;
+      window.ConversationDB.SetOpenAIApiKey(oaiKey);
+      await window.ConversationDB.DeleteDialog(dialog_id);
+      await msgGetHistory();
+		}
+
+    async function kbAddItem(text="", isGiantText=false)
+    {
+      const oaiKey = tb_oai_key.value;
+      window.VectorDB.SetOpenAIApiKey(oaiKey);
+      const title = `${text.substring(0,30)}...`
+      await window.VectorDB.IntegrateText(title, "", text, isGiantText);
+      kbGetTitles();
+    }
+
+    async function kbDeleteItem(docTitle)
+    {
+      let vdb = window.VectorDB;
+      await vdb.DeleteTitle(vdb.DATA_TYPE_KB, docTitle);
+      kbGetTitles();
+    }
+
+    async function kbGetTitles()
+    {
+      let vdb = window.VectorDB;
+      let divDocTItles = document.getElementById("div_user_documents");
+      let listDocTitles = await vdb.GetDocTitles(vdb.DATA_TYPE_KB);
+      let docTitles = "";
+      
+      for (const e of listDocTitles) 
+      {
+        docTitles += `<dt style="font-weight:inherit;"><button style="border:none;background-color:transparent;"onclick="kbDeleteItem('${e}')">X</button>${e}</dt>`
+        //console.log(e)
+      }
+      
+      docTitles = `<dl>${docTitles}</dl>`
+      divDocTItles.innerHTML = docTitles;
+    }
+  </script>
+
+
+  <!-- Layout -->
+  <script>
+     // GoldenLayout configuration
+     var config = {
+      content: [
+        {
+            type: 'row',
+            content: [
+                {
+                    type: 'column',
+                    content: [{
+                    type: 'component',
+                    componentName: 'persona_brain',
+                    }],
+                    width: 30,
+                },
+
+                {
+                    type: 'column',
+                    content: [
+                        {
+                            type: 'component',
+                            componentName: 'persona_chat'
+                        },
+                    ],
+                    width: 50
+                },
+
+                {
+                    type: 'column',
+                    content: [{
+                    type: 'component',
+                    componentName: 'user_documents',
+                    }],
+                    width: 20
+                },
+                
+            ]}
+    ]};
+
+    // Register components
+    var myLayout = new GoldenLayout(config, '#golden-layout-container');
+    myLayout.registerComponent('persona_brain', function (container, state) {
+      container.getElement().html(`
+        <div id="div_persona_brain_container">
+        </div>
+
+        <!--
+        <div id="div_persona_brain">
+          <textarea class="form-control" id="tb_persona_brain" rows="25">
+          </textarea>
+        </div>
+        -->
+        <div class="float-end mt-2">
+          <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
+          <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
+          <button class="btn btn-primary" id="btn_import_persona_brain">Import</button>
+        </div>
+      `);
+      container.on('open', function () {
+        $('#btn_default_persona_brain').on('click', async function () {
+          renderJSONInputForm("div_persona_brain_container", "persona_brain", persona);
+        });
+        $('#btn_save_persona_brain').on('click', async function () {
+          update_user_persona();
+        });
+        $('#btn_import_persona_brain').on('click', async function () {
+          const brain = getJSONInputFormData("persona_brain");
+          persona_input_content.value=JSON.stringify(brain,null,2);
+          dlg_persona_input.showModal();
+        });
+      });
+    });
+
+    myLayout.registerComponent('persona_chat', function (container, state) {
+      container.getElement().html(`
+        <div id="div_persona_chat">
+          <div id="messages" class="messages">
+          </div>
+        </div>
+        
+        <div class="hstack gap-2 mt-2" class_="user-input mt-2">
+          <input id="message-input" type="text" class="form-control input-text" placeholder="Type your message...">
+          <input id="message-send" type="submit" class="btn btn-primary input-submit" value="Send">
+        </div>
+        <div class="mt-2" style="color:white">
+          HISTORY:
+          <button class="btn btn-primary" id="btn_load_convo">Load</button>
+          <button class="btn btn-primary" id="btn_clear_convo">Clear</button>
+          <button class="btn btn-primary" id="btn_get_convo">Get</button>
+        </div>
+        
+      `);
+      container.on('open', function () {
+        $('#message-send').on('click', async function () {
+          await msgSend(document.getElementById("message-input").value)
+          //console.log("btn_submit_persona_chat");
+        });
+
+        $('#btn_get_convo').on('click', async function () {
+            const obj = await window.idb.GetIDBObject("conversation");
+            window.util.saveAsFile("ynbt-convo.json", obj, document);
+        });
+
+        $('#btn_load_convo').on('click', async function () {
+          await msgGetHistory();
+        });
+
+        $('#btn_clear_convo').on('click', async function () {
+          let text = "REALLY clear chat history????";
+          if (confirm(text) == true) {
+            //text = "You pressed OK!";
+            await msgClearHistory();
+            
+          } else {
+            //text = "You canceled!";
+          }
+        });
+
+
+      });
+    });
+
+    myLayout.registerComponent('user_documents', function (container, state) {
+      container.getElement().html(`
+        <div id="div_user_documents">
+        </div>
+        <div class="mt-2 float-end">
+          <button class="btn btn-primary" id="btn_user_kb_add">Add KB</button>
+          <button class="btn btn-primary" id="btn_user_kb_get">Get KB</button>
+        </div>
+      `);
+      container.on('open', function () {
+        $('#btn_user_kb_add').on('click', async function () {
+            kb_input_title.value = "General Knowledge";
+            kb_input_content.value = "";
+            dlg_kb_input.showModal();
+        });
+
+        $('#btn_user_kb_get').on('click', async function () {
+            const obj = await window.idb.GetIDBObject("knowledgebase");
+            window.util.saveAsFile("ynbt-kb.json", obj, document);
+        });
+      });
+    });
+
+
+    // Callback for every created stack
+    myLayout.on( 'stackCreated', function( stack ){
+        //var container = stack.getActiveContentItem().container;
+        stack.element.find('.lm_tabs').addClass('disabled'); // Disable close button
+        stack.element.find('.lm_close').addClass('disabled'); // Disable close button
+        stack.element.find('.lm_maximise').addClass('disabled'); // Disable maximise button
+        stack.element.find('.lm_popout').addClass('disabled'); // Disable popout button
+    })
+
+    //GoldenLayout init stuff
+    myLayout.init();
+    $(window).resize(function () {
+      myLayout.updateSize((window).width, (window).height);
+    });
+    
+    //DOM finished loading
+    $(window).load(async function() {
+      tb_oai_key.value = my_oaiKey??"";
+      await load_user_idb();
+
+      kb_input_content_submit.addEventListener("click", () => {
+        kbAddItem(kb_input_content.value,false);
+      });
+      
+      kb_input_content_cancel.addEventListener("click", () => {
+        dlg_kb_input.close("");
+      });
+
+      persona_input_content_submit.addEventListener("click", () => {
+        //kbAddItem(kb_input_content.value,false);
+
+        try {
+          let persona = persona_input_content.value;
+          //console.log(persona);
+          renderJSONInputForm("div_persona_brain_container", "persona_brain", JSON.parse(persona));
+        } catch (error) {
+          alert("Invalid JSON Format");
+        }
+        
+        dlg_persona_input.close("");
+      });
+      
+      persona_input_content_cancel.addEventListener("click", () => {
+        dlg_persona_input.close("");
+      });
+
+      const file_import_json = document.getElementById('file_import_json');
+      file_import_json.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async (event) => {
+          const contents = event.target.result;
+          await msgImportHistory(contents);                    
+        };
+
+        reader.readAsText(file);
+      });
+    });
+  </script>
+
+  
+</body>
+</html>
