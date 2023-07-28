@@ -121,3 +121,25 @@ color: #999;
 .collapsable.active{
     display: none;
 }
+
+
+.button-label {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    margin: 10px;
+  }
+  
+  .button-label:hover {
+    background-color: #45a049;
+  }
+  
+  .button-label:active {
+    background-color: #3e8e41;
+  }
