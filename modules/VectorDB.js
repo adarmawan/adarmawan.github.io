@@ -197,7 +197,7 @@ export class VectorDB {
     }
 
 
-    async IntegrateText(title = "", keyConcepts = "", text = "", isGiantText = true) {
+    async IntegrateText(title = "", keyConcepts = "", text = "", isGiantText = true, chunk_size=MAX_CHUNK_TOKENS, overlap_size=OVERLAP_CHUNK_TOKENS) {
         var userKnowledgeBaseObj = await this.LoadKnowledgeBaseFile(VectorDB.DATA_TYPE_KB)
 
         if (userKnowledgeBaseObj.references.indexOf(title) == -1)
@@ -214,7 +214,9 @@ export class VectorDB {
             newText = util.CombinedPeriods(newText)
             console.log(`IntegrateText - TextContent Tokens: ${util.GetTokenCount(newText)}`)
 
-            cleanSentenceArray = this.RecursiveChunkerWord(MAX_CHUNK_TOKENS, OVERLAP_CHUNK_TOKENS, newText);
+            chunk_size = Number(chunk_size);
+            overlap_size = Number(overlap_size);
+            cleanSentenceArray = this.RecursiveChunkerWord(chunk_size, overlap_size, newText);
             // Remove empty or falsy values from the array
             cleanSentenceArray = cleanSentenceArray.filter(function (item) {
                 return item; // returns true for non-empty or truthy values, false for empty or falsy values

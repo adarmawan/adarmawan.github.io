@@ -44,25 +44,38 @@
       <label for="tb_oai_key">OAI Key:</label>
       <input type="password" class_="form-control" id="tb_oai_key" value="">
       <label for="file_import_json" class="button-label">Import JSON Data</label>
-      <input type="file" id="file_import_json" style="display: none;">
+      <input type="file" id="file_import_json" accept=".json" style="display: none;">
     </h6>
   </div>
   
   <!-- pop-up dialog box, information -->
   <dialog id="dlg_info">
-    <h1> Requesting to OpenAI </h1>
+    <h1> Importing Large Text </h1>
   </dialog>
   <dialog id="dlg_kb_input">
-    <form method="dialog" style="width: 50vw;">
+    <form method="dialog" style="width: 80vw;">
       
-        <label for="kb_input_title">KB Title <Title></Title></label>
-        <input type="text" id="kb_input_title" name="kb_input_title" style="width:50vw;">
+        <label for="kb_input_title">KB Title</label>
+        <input type="text" id="kb_input_title" name="kb_input_title" style="width:80vw;">
 
         <label for="kb_input_content">KB Content</label>
-        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:50vw;">
+        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:80vw;">
         </textarea>
       
-      <div>
+
+        <div>
+          <label for="file_import_pdf" class="button-label">Import PDF</label>
+          <input type="file" id="file_import_pdf" accept=".pdf" style="display: none;">
+          <label for="kb_input_textchunker_chunkSize">Chunk Size</label>
+          <input type="number" id="kb_input_textchunker_chunkSize" style="width:5vw" value="200">
+          <label for="kb_input_textchunker_chunkOverlap">Overlap Size</label>
+          <input type="number" id="kb_input_textchunker_chunkOverlap" style="width:5vw" value="5">
+          <label for="kb_input_isGiantText">Large Text</label>
+          <input type="checkbox" id="kb_input_isGiantText">
+        </div>
+        
+
+      <div class="mt-2">
         <button id="kb_input_content_cancel" type="reset">Cancel</button>
         <button id="kb_input_content_submit" type="submit">Submit</button>
       </div>
@@ -84,13 +97,15 @@
 
   <div class="golden-layout-container" id="golden-layout-container"></div>
 
+  <!-- JS INCLUDES -->
+  <script src="//mozilla.github.io/pdf.js/build/pdf.js"></script>
   <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
   <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
   
 
   <!-- DATA -->
   <script>
-    const persona_ ={
+  const persona_full ={
       "dataType": "persona",
       "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
       "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
@@ -106,7 +121,13 @@
       "inference_token_kb_chat":512,
       "inference_items_recent_chats":5,
   };
-
+  
+  const textChunker ={
+      "dataType": "textchunker",
+      "chunk_size": 200,
+      "chunk_overlap": 5,
+  };
+  
   const persona ={
       "dataType": "persona",
       "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
@@ -114,7 +135,9 @@
       "greetings":"Talk to me, and I will remember.",
       
       "user_name": "Arief",
-      "persona_name": "Lisa"
+      "persona_name": "Lisa",
+
+      "inference_temperature": "0.7"
   };
   
   const conversation={
@@ -162,8 +185,6 @@
     import {ConversationDB} from "/modules/ConversationDB.js";
 
     idb.SetDBName("ynbt-lite-AI_Agent")
-    //idb.SetDBName("ynbt-lite")
-    //idb.SaveIDBObject2("persona", persona)
     window.call_ai = call_ai;
     window.idb = idb;
     window.util = util;
@@ -180,6 +201,9 @@
     const dlg_kb_input = document.getElementById("dlg_kb_input");
     const kb_input_title = document.getElementById("kb_input_title");
     const kb_input_content = document.getElementById("kb_input_content");
+    const kb_input_isGiantText = document.getElementById("kb_input_isGiantText");
+    const kb_input_textchunker_chunkSize = document.getElementById("kb_input_textchunker_chunkSize");
+    const kb_input_textchunker_chunkOverlap = document.getElementById("kb_input_textchunker_chunkOverlap");
     const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
     const kb_input_content_submit = document.getElementById("kb_input_content_submit");
     dlg_kb_input.returnValue = "kb_input_content";
@@ -488,13 +512,52 @@
       await msgGetHistory();
 		}
 
-    async function kbAddItem(text="", isGiantText=false)
+    async function kbAddItem()
     {
+      dlg_info.showModal();
       const oaiKey = tb_oai_key.value;
       window.VectorDB.SetOpenAIApiKey(oaiKey);
-      const title = `${text.substring(0,30)}...`
-      await window.VectorDB.IntegrateText(title, "", text, isGiantText);
+      //alert(`${kb_input_title.value} ${kb_input_isGiantText.checked} ${kb_input_textchunker_chunkSize.value} ${kb_input_textchunker_chunkOverlap.value}`)
+      await window.VectorDB.IntegrateText(kb_input_title.value, "", kb_input_content.value, kb_input_isGiantText.checked, kb_input_textchunker_chunkSize.value, kb_input_textchunker_chunkOverlap.value);
       kbGetTitles();
+      dlg_info.close("");
+    }
+
+    async function kbImportPDF(event)
+    {
+      const file = event.target.files[0];
+      kb_input_title.value = file.name;
+
+      const fileReader = new FileReader();
+      fileReader.onload = async function(e) 
+      {
+        const typedArray = new Uint8Array(e.target.result);
+        console.log(typedArray.length);
+        
+        /////
+        let pdfjsLib = window['pdfjs-dist/build/pdf'];// Loaded via <script> tag, create shortcut to access PDF.js exports.
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
+        
+        pdfjsLib.getDocument(typedArray).promise.then(async function(pdf) {
+          const totalPages = pdf.numPages;
+          kb_input_isGiantText.checked = true;
+          let p_text = ""
+          for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) 
+          {
+            const page = await pdf.getPage(pageNumber);
+            const pageTextContent = await page.getTextContent();
+            kb_input_content.value += `_PN_:${pageNumber}\n`;
+            for (const item of pageTextContent.items) 
+            {
+              kb_input_content.value += item.str + '\n';
+            }
+          }
+          alert("Import PDF: FINISHED");
+        });
+        /////
+      }
+    
+      fileReader.readAsArrayBuffer(file);
     }
 
     async function kbDeleteItem(docTitle)
@@ -691,7 +754,7 @@
       await load_user_idb();
 
       kb_input_content_submit.addEventListener("click", () => {
-        kbAddItem(kb_input_content.value,false);
+        kbAddItem();
       });
       
       kb_input_content_cancel.addEventListener("click", () => {
@@ -715,6 +778,9 @@
       persona_input_content_cancel.addEventListener("click", () => {
         dlg_persona_input.close("");
       });
+
+      let file_import_pdf = document.getElementById("file_import_pdf");
+      file_import_pdf.addEventListener('change', kbImportPDF);
 
       const file_import_json = document.getElementById('file_import_json');
       file_import_json.addEventListener('change', (event) => {
