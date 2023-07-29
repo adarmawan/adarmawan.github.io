@@ -32,14 +32,14 @@
   * [MermaidJS](https://mermaid.js.org) + [svg-pan-zoom](https://bumbu.me/svg-pan-zoom/)
   * OpenAI gpt-3.5-turbo : Completion
   
-  ### Open [Mermaid Graph Generator](tool-1.html)
-
+  ### Open [Mermaid Graph Generator](https://adarmawan.github.io/tool-1.html)
   
   ---
   ## <a name="tool-2"></a>AI Persona With Long-term-memory and Knowledgebase
   
-  I wrote this as a sample of fully client-side implementation of an AI Agent with long-term-memory and a user knowledgebase.
+  I wrote this as a sample of fully client-side implementation of an AI Agent with long-term-memory and a user knowledgebase. The knowledgebase can be a text content or import from your PDF files. PDF text import is using PDFjs on the client-side.
 
+  Currently supporting QueryContext prompt generation and completion API for OpenAI CGTP & LLama2(trough llama.cpp server).
 
   It mainly use my VectorDB class for its text-vectors storing and searches. The ConversationDB class is a layer above the VectorDB, specializing for the chat system backend.
 
@@ -51,7 +51,7 @@
 
   ### Inference
   * It DOES NOT use the "system" message of gpt API. 
-    * Using the system message makes the persona dummber currently.
+    * Using the system message makes the persona "less smart" currently.
   * It DOES NOT use the array message structure of gpt API.
     * All current needed knowledge context for the chat is ALWAYS in the first "user" message.
   * Structure of the "Query Context" for inference:
@@ -69,6 +69,7 @@
   * Vanilla JS
   * Bootstrap
   * [Golden Layout](https://github.com/golden-layout/golden-layout)
+  * [PDFjs](https://mozilla.github.io/pdf.js/)
   * OpenAI ada-002 : Vector embeddings
   * OpenAI gpt-3.5-turbo : Completion
   * IndexDB : Standard client-side storage for VectorDB persistance
@@ -76,5 +77,6 @@
   * ConversationDB : A wrapper around VectorDB for chat stuff
   
   
-  ### Open [AI Persona With Long-term-memory and Knowledgebase](tool-2.html)
+  ### Open [AI Persona With Long-term-memory and Knowledgebase](https://adarmawan.github.io/tool-2.html)
+
 # [This repo GitHub Page](https://adarmawan.github.io)

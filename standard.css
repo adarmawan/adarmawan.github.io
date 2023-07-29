@@ -7,7 +7,7 @@
 
 
 .golden-layout-container {
-    height: calc(99.9vh);
+    height: calc(100vh);
   }
 
 .lm_splitter:hover, .lm_splitter.lm_dragging {
