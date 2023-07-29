@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=0.9">
   <title>AI Persona With Long-term-memory and Knowledgebase</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
   <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
@@ -39,15 +39,6 @@
   </style>
 </head>
 <body>
-  <div class="header hstack gap-3">
-    <h6>
-      <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="">
-      <label for="file_import_json" class="button-label">Import JSON Data</label>
-      <input type="file" id="file_import_json" accept=".json" style="display: none;">
-    </h6>
-  </div>
-  
   <!-- pop-up dialog box, information -->
   <dialog id="dlg_info">
     <h1> Importing Large Text </h1>
@@ -132,7 +123,6 @@
       "dataType": "persona",
       "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
       "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
-      "greetings":"Talk to me, and I will remember.",
       
       "user_name": "Arief",
       "persona_name": "Lisa",
@@ -195,24 +185,7 @@
 
   <!-- UI Objects -->
   <script>
-    const dlg_info = document.getElementById("dlg_info");
-    const tb_oai_key = document.getElementById("tb_oai_key");
     
-    const dlg_kb_input = document.getElementById("dlg_kb_input");
-    const kb_input_title = document.getElementById("kb_input_title");
-    const kb_input_content = document.getElementById("kb_input_content");
-    const kb_input_isGiantText = document.getElementById("kb_input_isGiantText");
-    const kb_input_textchunker_chunkSize = document.getElementById("kb_input_textchunker_chunkSize");
-    const kb_input_textchunker_chunkOverlap = document.getElementById("kb_input_textchunker_chunkOverlap");
-    const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
-    const kb_input_content_submit = document.getElementById("kb_input_content_submit");
-    dlg_kb_input.returnValue = "kb_input_content";
-
-    const dlg_persona_input = document.getElementById("dlg_persona_input");
-    const persona_input_content = document.getElementById("persona_input_content");
-    const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
-    const persona_input_content_submit = document.getElementById("persona_input_content_submit");
-    dlg_persona_input.returnValue = "persona_input_content";
   </script>
 
 
@@ -630,15 +603,17 @@
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
     myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
+      <div class="header hstack gap-3">
+    <h6>
+      <label for="tb_oai_key">OAI Key:</label>
+      <input type="password" class_="form-control" id="tb_oai_key" value="">
+      <label for="file_import_json" class="button-label">Import JSON Data</label>
+      <input type="file" id="file_import_json" accept=".json" style="display: none;">
+    </h6>
+  </div>
         <div id="div_persona_brain_container">
         </div>
 
-        <!--
-        <div id="div_persona_brain">
-          <textarea class="form-control" id="tb_persona_brain" rows="25">
-          </textarea>
-        </div>
-        -->
         <div class="float-end mt-2">
           <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
           <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
@@ -750,6 +725,25 @@
     
     //DOM finished loading
     $(window).load(async function() {
+      const dlg_info = document.getElementById("dlg_info");
+    const tb_oai_key = document.getElementById("tb_oai_key");
+    
+    const dlg_kb_input = document.getElementById("dlg_kb_input");
+    const kb_input_title = document.getElementById("kb_input_title");
+    const kb_input_content = document.getElementById("kb_input_content");
+    const kb_input_isGiantText = document.getElementById("kb_input_isGiantText");
+    const kb_input_textchunker_chunkSize = document.getElementById("kb_input_textchunker_chunkSize");
+    const kb_input_textchunker_chunkOverlap = document.getElementById("kb_input_textchunker_chunkOverlap");
+    const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
+    const kb_input_content_submit = document.getElementById("kb_input_content_submit");
+    dlg_kb_input.returnValue = "kb_input_content";
+
+    const dlg_persona_input = document.getElementById("dlg_persona_input");
+    const persona_input_content = document.getElementById("persona_input_content");
+    const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
+    const persona_input_content_submit = document.getElementById("persona_input_content_submit");
+    dlg_persona_input.returnValue = "persona_input_content";
+    
       tb_oai_key.value = my_oaiKey??"";
       await load_user_idb();
 
