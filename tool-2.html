@@ -603,14 +603,17 @@
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
     myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
-      <div class="header hstack gap-3">
-    <h6>
-      <label for="tb_oai_key">OAI Key:</label>
-      <input type="password" class_="form-control" id="tb_oai_key" value="">
-      <label for="file_import_json" class="button-label">Import JSON Data</label>
-      <input type="file" id="file_import_json" accept=".json" style="display: none;">
-    </h6>
-  </div>
+        <div class="header hstack gap-3">
+            <label _for="tb_oai_key">OAI Key</label>
+            <input type="password" class_="form-control" id="tb_oai_key" value="">
+        </div>
+
+        <div class="header hstack gap-3">
+            <label >JSON Data</label>
+            <label for="file_import_json" class="button-label">Import</label>
+            <input type="file" id="file_import_json" accept=".json" style="display: none;">          
+        </div>
+
         <div id="div_persona_brain_container">
         </div>
 
@@ -710,11 +713,11 @@
 
     // Callback for every created stack
     myLayout.on( 'stackCreated', function( stack ){
-        //var container = stack.getActiveContentItem().container;
-        stack.element.find('.lm_tabs').addClass('disabled'); // Disable close button
-        stack.element.find('.lm_close').addClass('disabled'); // Disable close button
-        stack.element.find('.lm_maximise').addClass('disabled'); // Disable maximise button
-        stack.element.find('.lm_popout').addClass('disabled'); // Disable popout button
+        $('.lm_header').hide();
+        //stack.element.find('.lm_tabs').addClass('disabled'); // Disable close button
+        //stack.element.find('.lm_close').addClass('disabled'); // Disable close button
+        //stack.element.find('.lm_maximise').addClass('disabled'); // Disable maximise button
+        //stack.element.find('.lm_popout').addClass('disabled'); // Disable popout button
     })
 
     //GoldenLayout init stuff
@@ -726,24 +729,24 @@
     //DOM finished loading
     $(window).load(async function() {
       const dlg_info = document.getElementById("dlg_info");
-    const tb_oai_key = document.getElementById("tb_oai_key");
-    
-    const dlg_kb_input = document.getElementById("dlg_kb_input");
-    const kb_input_title = document.getElementById("kb_input_title");
-    const kb_input_content = document.getElementById("kb_input_content");
-    const kb_input_isGiantText = document.getElementById("kb_input_isGiantText");
-    const kb_input_textchunker_chunkSize = document.getElementById("kb_input_textchunker_chunkSize");
-    const kb_input_textchunker_chunkOverlap = document.getElementById("kb_input_textchunker_chunkOverlap");
-    const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
-    const kb_input_content_submit = document.getElementById("kb_input_content_submit");
-    dlg_kb_input.returnValue = "kb_input_content";
+      const tb_oai_key = document.getElementById("tb_oai_key");
+      
+      const dlg_kb_input = document.getElementById("dlg_kb_input");
+      const kb_input_title = document.getElementById("kb_input_title");
+      const kb_input_content = document.getElementById("kb_input_content");
+      const kb_input_isGiantText = document.getElementById("kb_input_isGiantText");
+      const kb_input_textchunker_chunkSize = document.getElementById("kb_input_textchunker_chunkSize");
+      const kb_input_textchunker_chunkOverlap = document.getElementById("kb_input_textchunker_chunkOverlap");
+      const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
+      const kb_input_content_submit = document.getElementById("kb_input_content_submit");
+      dlg_kb_input.returnValue = "kb_input_content";
 
-    const dlg_persona_input = document.getElementById("dlg_persona_input");
-    const persona_input_content = document.getElementById("persona_input_content");
-    const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
-    const persona_input_content_submit = document.getElementById("persona_input_content_submit");
-    dlg_persona_input.returnValue = "persona_input_content";
-    
+      const dlg_persona_input = document.getElementById("dlg_persona_input");
+      const persona_input_content = document.getElementById("persona_input_content");
+      const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
+      const persona_input_content_submit = document.getElementById("persona_input_content_submit");
+      dlg_persona_input.returnValue = "persona_input_content";
+
       tb_oai_key.value = my_oaiKey??"";
       await load_user_idb();
 
