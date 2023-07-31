@@ -140,7 +140,7 @@ export async function call_oai_completion_stream(p_system, p_final="", oaiKey=""
                     let jObj = JSON.parse(c.replace("data: ",""));
                     if(jObj.choices[0].finish_reason==null)
                     {
-                        aiAnswerTextArea.textContent += jObj.choices[0].delta.content;
+                        aiAnswerTextArea.value += jObj.choices[0].delta.content;
                         rspMsg += jObj.choices[0].delta.content;
                     }
                     
@@ -244,10 +244,10 @@ export async function call_oai_embedding(p_final, oaiKey="")
 
 /*
 */
-export async function call_ll2_completion(p_final="", p_stop=["</s>"], stream=true, aiAnswerTextArea=null, temperature=0.5,max_tokens=1024)
+export async function call_ll2_completion(p_final="", p_stop=["</s>"], aiAnswerTextArea=null, temperature=0.5,max_tokens=1024)
 {
     var payload={
-        "stream":stream,
+        "stream":true,
         "n_keep":0,
         "n_predict":max_tokens,
         "temperature":temperature,
@@ -298,7 +298,8 @@ export async function call_ll2_completion(p_final="", p_stop=["</s>"], stream=tr
 
                 // Process the current chunk of data
                 rspMsg += jObj.content;
-                aiAnswerTextArea.textContent += jObj.content;
+                aiAnswerTextArea.value += jObj.content;
+                aiAnswerTextArea.scrollTop = aiAnswerTextArea.scrollHeight;
             }
 
 
