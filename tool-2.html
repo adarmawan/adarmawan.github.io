@@ -90,8 +90,8 @@
 
   <!-- JS INCLUDES -->
   <script src="//mozilla.github.io/pdf.js/build/pdf.js"></script>
-  <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
-  <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
   
 
   <!-- DATA -->
@@ -181,13 +181,7 @@
     window.VectorDB = new VectorDB();
     window.ConversationDB = new ConversationDB();
   </script>
-  
-
-  <!-- UI Objects -->
-  <script>
-    
-  </script>
-
+ 
 
   <!-- FUNCTIONS -->
   <script>
@@ -273,7 +267,7 @@
 
     function scrollMessageToBottom()
 		{
-			var objDiv = document.getElementById("messages");
+			var objDiv = $("#messages");
 			objDiv.scrollTop = objDiv.scrollHeight;
 		}
 
@@ -425,7 +419,7 @@
 
     async function msgGetHistory()
     {
-      document.getElementById("messages").innerHTML = "";
+      $("#messages").innerHTML = "";
 
       const oaiKey = tb_oai_key.value;
       window.ConversationDB.SetOpenAIApiKey(oaiKey);
@@ -443,33 +437,42 @@
       await window.idb.SaveIDBObject(conversation);
     }
     
-    async function msgImportHistory(contents)
+    async function importJSONData(event)
     {
       try 
           {
-            const data = JSON.parse(contents);
-            const dataType = data.dataType ?? "";
+            const file = event.target.files[0];
+            const reader = new FileReader();
 
-            if(dataType!="conversation" && dataType!="persona" && dataType!="knowledgebase")
-            {
-              alert("Invalid JSON File");
-            }
-            else
-            {
-              const userRsp = confirm(`Replace ${dataType.toUpperCase()} with this JSON ?`);
-              if(userRsp)
+            reader.onload = async (event) => {
+              const contents = event.target.result;
+              const data = JSON.parse(contents);
+              const dataType = data.dataType ?? "";
+
+              if(dataType!="conversation" && dataType!="persona" && dataType!="knowledgebase")
               {
-                //console.log(data);
-                await window.idb.SaveIDBObject(data);
-                alert("Finished importing JSON file");
-                location.reload();
+                alert("Invalid JSON File");
               }
               else
               {
-                location.reload();
-              }
-              
-            }
+                const userRsp = confirm(`Replace ${dataType.toUpperCase()} with this JSON ?`);
+                if(userRsp)
+                {
+                  //console.log(data);
+                  await window.idb.SaveIDBObject(data);
+                  alert("Finished importing JSON file");
+                  location.reload();
+                }
+                else
+                {
+                  location.reload();
+                }
+                
+              }                   
+            };
+
+            reader.readAsText(file);
+            
             
           } catch (error) {
             alert("Invalid JSON File")
@@ -543,7 +546,7 @@
     async function kbGetTitles()
     {
       let vdb = window.VectorDB;
-      let divDocTItles = document.getElementById("div_user_documents");
+      let divDocTItles = $("#div_user_documents")[0];
       let listDocTitles = await vdb.GetDocTitles(vdb.DATA_TYPE_KB);
       let docTitles = "";
       
@@ -659,7 +662,7 @@
       `);
       container.on('open', function () {
         $('#message-send').on('click', async function () {
-          await msgSend(document.getElementById("message-input").value)
+          await msgSend($("#message-input").value)
           //console.log("btn_submit_persona_chat");
         });
 
@@ -714,10 +717,6 @@
     // Callback for every created stack
     myLayout.on( 'stackCreated', function( stack ){
         $('.lm_header').hide();
-        //stack.element.find('.lm_tabs').addClass('disabled'); // Disable close button
-        //stack.element.find('.lm_close').addClass('disabled'); // Disable close button
-        //stack.element.find('.lm_maximise').addClass('disabled'); // Disable maximise button
-        //stack.element.find('.lm_popout').addClass('disabled'); // Disable popout button
     })
 
     //GoldenLayout init stuff
@@ -728,23 +727,23 @@
     
     //DOM finished loading
     $(window).load(async function() {
-      const dlg_info = document.getElementById("dlg_info");
-      const tb_oai_key = document.getElementById("tb_oai_key");
+      const dlg_info = $("#dlg_info")[0];
+      const tb_oai_key = $("#tb_oai_key")[0];
       
-      const dlg_kb_input = document.getElementById("dlg_kb_input");
-      const kb_input_title = document.getElementById("kb_input_title");
-      const kb_input_content = document.getElementById("kb_input_content");
-      const kb_input_isGiantText = document.getElementById("kb_input_isGiantText");
-      const kb_input_textchunker_chunkSize = document.getElementById("kb_input_textchunker_chunkSize");
-      const kb_input_textchunker_chunkOverlap = document.getElementById("kb_input_textchunker_chunkOverlap");
-      const kb_input_content_cancel = document.getElementById("kb_input_content_cancel");
-      const kb_input_content_submit = document.getElementById("kb_input_content_submit");
+      const dlg_kb_input = $("#dlg_kb_input")[0];
+      const kb_input_title = $("#kb_input_title")[0];
+      const kb_input_content = $("#kb_input_content")[0];
+      const kb_input_isGiantText = $("#kb_input_isGiantText")[0];
+      const kb_input_textchunker_chunkSize = $("#kb_input_textchunker_chunkSize")[0];
+      const kb_input_textchunker_chunkOverlap = $("#kb_input_textchunker_chunkOverlap")[0];
+      const kb_input_content_cancel = $("#kb_input_content_cancel")[0];
+      const kb_input_content_submit = $("#kb_input_content_submit")[0];
       dlg_kb_input.returnValue = "kb_input_content";
 
-      const dlg_persona_input = document.getElementById("dlg_persona_input");
-      const persona_input_content = document.getElementById("persona_input_content");
-      const persona_input_content_cancel = document.getElementById("persona_input_content_cancel");
-      const persona_input_content_submit = document.getElementById("persona_input_content_submit");
+      const dlg_persona_input = $("#dlg_persona_input")[0];
+      const persona_input_content = $("#persona_input_content")[0];
+      const persona_input_content_cancel = $("#persona_input_content_cancel")[0];
+      const persona_input_content_submit = $("#persona_input_content_submit")[0];
       dlg_persona_input.returnValue = "persona_input_content";
 
       tb_oai_key.value = my_oaiKey??"";
@@ -776,21 +775,11 @@
         dlg_persona_input.close("");
       });
 
-      let file_import_pdf = document.getElementById("file_import_pdf");
+      let file_import_pdf = $("#file_import_pdf")[0];
       file_import_pdf.addEventListener('change', kbImportPDF);
 
-      const file_import_json = document.getElementById('file_import_json');
-      file_import_json.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        const reader = new FileReader();
-
-        reader.onload = async (event) => {
-          const contents = event.target.result;
-          await msgImportHistory(contents);                    
-        };
-
-        reader.readAsText(file);
-      });
+      const file_import_json = $('#file_import_json')[0];
+      file_import_json.addEventListener('change',importJSONData);
     });
   </script>
 
