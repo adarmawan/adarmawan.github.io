@@ -13,7 +13,7 @@
   - [AI Mermaid Graph Generator](#tool-1)
   - [AI Persona With Long-term-memory and Knowledgebase](#tool-2)
   - [AI Book Writer](#tool-3)
-  - [AI Essay Expert](#tool-4)
+  - [AI XXX XXX](#tool-4)
 
 
   ---
@@ -78,5 +78,46 @@
   
   
   ### Open [AI Persona With Long-term-memory and Knowledgebase](https://adarmawan.github.io/tool-2.html)
+
+  
+  ---
+  ## <a name="tool-3"></a>AI Book Writer
+  Since I was a child, I always love reading books. I like imagine adventures and robot wars and starships. I love reading books by Enid Blyton, or the hardy boys.
+
+  I've tried to write a long story before, but failed miserably :) 
+  So, after I watched some David Saphiro stuff about writing a book using LLM, I started experimenting stuff, last year still using davinci-003 and CLI, this year using ChatGPT for prompt design & workflow testing, I found the experiance is clunky at best.
+
+  So I wrote this thing :)
+
+  Tech Stuff:
+  - Can use ChatGPT or Llama2-chat(trough llamaCpp-Server) for text generation.
+  - llamaCpp-Server is hardcoded at "http://localhost:8080/completion"
+  - Already have standard prompts for those LLM.
+  - Can Import and Export the state of your writing project and the state of the winBox windows position and sizes in your project.
+  - Using WinBox.js to have multiple windows on screen. Each with its own purpose.
+
+  What It Can Do:
+  - Story Setup : Genres, Time period, Locations, Initial Notes.
+  - Generate StoryPlotlines based on simple settings and initial notes.
+  - Continue to generate StoryPlotlines if the API broken or not enough token.
+  - Expand a PlotPoint from previous step. This step will expand the plot point into a story with detail scene descriptions and characters dialogs.
+  - Continue to expand the PlotPoint if the API broken or not enough token.
+  
+  Future Wish List:
+  - Character Generator: Generate character background story for the book.
+  - Dialogs Generator: Generate dialogs in a PlotPoint scene/story.
+  - Book Manager: collection of the data generated fro other steps.
+  
+
+  ### Tech Used
+  * Vanilla JS
+  * JQuery
+  * [WinBox.js](https://github.com/nextapps-de/winbox#winbox.x)
+  * OpenAI gpt-3.5-turbo : Completion
+  * [llama.cpp-server](https://github.com/ggerganov/llama.cpp/tree/master/examples/server)
+  * [Llama2-Chat-7b](https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGML)
+
+
+  ### Open [AI Book Writer](https://adarmawan.github.io/tool-3.html)
 
 # [This repo GitHub Page](https://adarmawan.github.io)
