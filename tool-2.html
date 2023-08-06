@@ -126,13 +126,15 @@
   
   const persona ={
       "dataType": "persona",
-      "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions.",
-      "persona_info": "My name is Lisa,or \"Liz\" for short. I am a very helpfull assistant. I will describe my feelings, thoughts and action very descriptively in my answers.",
+      "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions. If I can't find the answer, I will simply say \"Sorry, I don't have the answer for that.",
+      "persona_info": "My name is Lisa, or \"Liz\" for short. I am a joyful and helpful female companion. I will describe my feelings, thoughts and action very descriptively in my answers.",
       
       "user_name": "Arief",
       "persona_name": "Lisa",
 
-      "inference_temperature": "0.7"
+      "tb_oai_key": "",
+      "inf_temperature": "0.7",
+      "inf_maxgen" : 256
   };
   
   const conversation={
@@ -405,13 +407,13 @@
       //console.log(rspMsgTextArea);
 
       
-      const inf_temp = Number(brain.inference_temperature ?? 0.7);
-      const inf_max_gen = Number(brain.inf_max_gen ?? 256);
+      const inf_temp = Number(brain.inf_temperature ?? 0.7);
+      const inf_maxgen = Number(brain.inf_maxgen ?? 256);
       let rsp = "";
       if(docById("opt_llm").value=="CGPT")
-      rsp = await window.call_ai.call_oai_completion_stream("", p_user, oaiKey, rspMsgTextArea, inf_temp, inf_max_gen);
+      rsp = await window.call_ai.call_oai_completion_stream("", p_user, oaiKey, rspMsgTextArea, inf_temp, inf_maxgen);
       else
-      rsp = await window.call_ai.call_ll2_completion(p_user, ["</s>", brain.user_name+":"], rspMsgTextArea, inf_temp, inf_max_gen);
+      rsp = await window.call_ai.call_ll2_completion(p_user, ["</s>", brain.user_name+":"], rspMsgTextArea, inf_temp, inf_maxgen);
       
       
       if(rsp.includes("[ERROR"))
@@ -637,10 +639,12 @@
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
     myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
+        <!--
         <div class="header hstack gap-3">
             <label _for="tb_oai_key">OAI Key</label>
             <input type="password" class_="form-control" id="tb_oai_key" value="">
         </div>
+        -->
         <div class="header hstack gap-3">
           <label for="opt_llm" style_="padding:0em;">LLM Type</label>
           <select id="opt_llm">
@@ -658,12 +662,12 @@
         </div>
 
         <div class="float-end mt-2">
-          <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
-          <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
+          <button class="btn btn-sm btn-primary" id="btn_default_persona_brain">Default</button>
+          <button class="btn btn-sm btn-primary" id="btn_save_persona_brain">Save</button>
           <!--
-          <button class="btn btn-primary" id="btn_import_persona_brain">Edit</button>
+          <button class="btn btn-sm btn-primary" id="btn_import_persona_brain">Edit</button>
           -->
-          <button class="btn btn-primary" id="btn_export_persona_brain">Export</button>
+          <button class="btn btn-sm btn-primary" id="btn_export_persona_brain">Export</button>
         </div>
       `);
       container.on('open', function () {
@@ -696,13 +700,13 @@
         
         <div class="hstack gap-2 mt-2" class_="user-input mt-2">
           <input id="message-input" type="text" class="form-control input-text" placeholder="Type your message...">
-          <input id="message-send" type="submit" class="btn btn-primary input-submit" value="Send">
+          <input id="message-send" type="submit" class="btn btn-sm btn-primary input-submit" value="Send">
         </div>
         <div class="mt-2" style="color:white">
           HISTORY:
-          <button class="btn btn-primary" id="btn_load_convo">Load</button>
-          <button class="btn btn-primary" id="btn_clear_convo">Clear</button>
-          <button class="btn btn-primary" id="btn_get_convo">Export</button>
+          <button class="btn btn-sm btn-primary" id="btn_load_convo">Load</button>
+          <button class="btn btn-sm btn-primary" id="btn_clear_convo">Clear</button>
+          <button class="btn btn-sm btn-primary" id="btn_get_convo">Export</button>
         </div>
         
       `);
@@ -742,8 +746,8 @@
         </div>
         <div class="mt-2" style="color:white">
           Knowledebase:
-          <button class="btn btn-primary" id="btn_user_kb_add">Add</button>
-          <button class="btn btn-primary" id="btn_user_kb_get">Export</button>
+          <button class="btn btn-sm btn-primary" id="btn_user_kb_add">Add</button>
+          <button class="btn btn-sm btn-primary" id="btn_user_kb_get">Export</button>
         </div>
       `);
       container.on('open', function () {
@@ -773,6 +777,8 @@
     
     //DOM finished loading
     window.onload = async function() {
+      await load_user_idb();
+
       const dlg_info = docById('dlg_info');
       const tb_oai_key = docById('tb_oai_key');
       
@@ -793,7 +799,7 @@
       dlg_persona_input.returnValue = "persona_input_content";
 
       tb_oai_key.value = my_oaiKey??"";
-      await load_user_idb();
+      
 
       kb_input_content_submit.addEventListener("click", () => {
         kbAddItem();
