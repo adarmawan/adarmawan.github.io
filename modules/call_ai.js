@@ -284,7 +284,7 @@ export async function call_ll2_completion(p_final="", p_stop=["</s>"], aiAnswerT
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let rspMsg = "";
- 
+            
             while (true) {
                 const result = await reader.read()
                 if (result.done) {
@@ -298,7 +298,13 @@ export async function call_ll2_completion(p_final="", p_stop=["</s>"], aiAnswerT
 
                 // Process the current chunk of data
                 rspMsg += jObj.content;
-                aiAnswerTextArea.value += jObj.content;
+
+                if(aiAnswerTextArea.nodeName=="P")
+                    aiAnswerTextArea.textContent += jObj.content;
+                else
+                    aiAnswerTextArea.value += jObj.content;
+            
+                    
                 aiAnswerTextArea.scrollTop = aiAnswerTextArea.scrollHeight;
             }
 

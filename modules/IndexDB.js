@@ -1,9 +1,13 @@
 var IDB_NAME = "ynbt-lite";
-const IDB_STORES = ["persona","conversation","knowledgebase"];
+var IDB_STORES = ["persona","conversation","knowledgebase"];
 
 export function SetDBName(dbName=IDB_NAME)
 {
     IDB_NAME = dbName;
+}
+export function SetDBStores(dbStores=IDB_STORES)
+{
+    IDB_STORES = dbStores;
 }
 // Function to open the IndexedDB
 export async function OpenIDB() {

@@ -36,6 +36,11 @@
       pointer-events: none !important;
       opacity: 0.5 !important;
     }
+    @media (max-width: 768px) {
+      html {
+        font-size: 1.3em;
+      }
+    }
   </style>
 </head>
 <body>
@@ -185,6 +190,9 @@
 
   <!-- FUNCTIONS -->
   <script>
+    const docById = (id) => document.getElementById(id);
+    const docByClass = (className) => document.getElementsByClassName(className);
+
     function renderJSONInputForm(divContainerId="", formName="",dataObject={})
     {
       // Get the container element to hold the form
@@ -267,7 +275,7 @@
 
     function scrollMessageToBottom()
 		{
-			var objDiv = $("#messages");
+			var objDiv = docById('messages');
 			objDiv.scrollTop = objDiv.scrollHeight;
 		}
 
@@ -340,7 +348,7 @@
 			<span class="_TIME_CLASS_">_TIMESTAMP_</span>
 			_BUTTONS_
 			</div>`
-			
+
 			let buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
 			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
       let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
@@ -397,9 +405,14 @@
       //console.log(rspMsgTextArea);
 
       
-      //let rsp = await window.call_ai.call_ll2_completion(p_final,p_stop=["</s>", brain.user_name+":"], true,rspMsgTextArea,0.9, 256);
-      const i_t = Number(brain.inference_temperature ?? 0.7);
-      let rsp = await window.call_ai.call_oai_completion_stream("", p_user, oaiKey, rspMsgTextArea, i_t, 256);
+      const inf_temp = Number(brain.inference_temperature ?? 0.7);
+      const inf_max_gen = Number(brain.inf_max_gen ?? 256);
+      let rsp = "";
+      if(docById("opt_llm").value=="CGPT")
+      rsp = await window.call_ai.call_oai_completion_stream("", p_user, oaiKey, rspMsgTextArea, inf_temp, inf_max_gen);
+      else
+      rsp = await window.call_ai.call_ll2_completion(p_user, ["</s>", brain.user_name+":"], rspMsgTextArea, inf_temp, inf_max_gen);
+      
       
       if(rsp.includes("[ERROR"))
       {
@@ -419,7 +432,7 @@
 
     async function msgGetHistory()
     {
-      $("#messages").innerHTML = "";
+      docById('messages').innerHTML = "";
 
       const oaiKey = tb_oai_key.value;
       window.ConversationDB.SetOpenAIApiKey(oaiKey);
@@ -546,7 +559,7 @@
     async function kbGetTitles()
     {
       let vdb = window.VectorDB;
-      let divDocTItles = $("#div_user_documents")[0];
+      let divDocTItles = docById('div_user_documents');
       let listDocTitles = await vdb.GetDocTitles(vdb.DATA_TYPE_KB);
       let docTitles = "";
       
@@ -564,8 +577,23 @@
 
   <!-- Layout -->
   <script>
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    const persona_brain_size = isMobile ? 0: 20;
+    const user_documents_size = isMobile ? 0: 20;
      // GoldenLayout configuration
      var config = {
+        settings:{
+          hasHeaders: false,
+          constrainDragToContainer: true,
+      },
+      dimensions: {
+          borderWidth: 5,
+          minItemHeight: 0,
+          minItemWidth: 0,
+          headerHeight: 20,
+          dragProxyWidth: 300,
+          dragProxyHeight: 200
+      },
       content: [
         {
             type: 'row',
@@ -574,9 +602,10 @@
                     type: 'column',
                     content: [{
                     type: 'component',
+                    header : {show:false},
                     componentName: 'persona_brain',
                     }],
-                    width: 30,
+                    width: persona_brain_size ,
                 },
 
                 {
@@ -584,6 +613,7 @@
                     content: [
                         {
                             type: 'component',
+                            header : {show:false},
                             componentName: 'persona_chat'
                         },
                     ],
@@ -594,9 +624,10 @@
                     type: 'column',
                     content: [{
                     type: 'component',
+                    header : {show:false},
                     componentName: 'user_documents',
                     }],
-                    width: 20
+                    width: user_documents_size
                 },
                 
             ]}
@@ -610,7 +641,13 @@
             <label _for="tb_oai_key">OAI Key</label>
             <input type="password" class_="form-control" id="tb_oai_key" value="">
         </div>
-
+        <div class="header hstack gap-3">
+          <label for="opt_llm" style_="padding:0em;">LLM Type</label>
+          <select id="opt_llm">
+            <option value="CGPT">OAI ChatGPT-3.5-turbo</option>
+            <option value="LL2">LLC LLama2-Chat</option>
+          </select>
+        </div>
         <div class="header hstack gap-3">
             <label >JSON Data</label>
             <label for="file_import_json" class="button-label">Import</label>
@@ -623,20 +660,29 @@
         <div class="float-end mt-2">
           <button class="btn btn-primary" id="btn_default_persona_brain">Default</button>
           <button class="btn btn-primary" id="btn_save_persona_brain">Save</button>
-          <button class="btn btn-primary" id="btn_import_persona_brain">Import</button>
+          <!--
+          <button class="btn btn-primary" id="btn_import_persona_brain">Edit</button>
+          -->
+          <button class="btn btn-primary" id="btn_export_persona_brain">Export</button>
         </div>
       `);
       container.on('open', function () {
-        $('#btn_default_persona_brain').on('click', async function () {
+        docById('btn_default_persona_brain').addEventListener('click', async function () {
           renderJSONInputForm("div_persona_brain_container", "persona_brain", persona);
         });
-        $('#btn_save_persona_brain').on('click', async function () {
+        docById('btn_save_persona_brain').addEventListener('click', async function () {
           update_user_persona();
         });
-        $('#btn_import_persona_brain').on('click', async function () {
+        /*
+        docById('btn_import_persona_brain').addEventListener('click', async function () {
           const brain = getJSONInputFormData("persona_brain");
           persona_input_content.value=JSON.stringify(brain,null,2);
           dlg_persona_input.showModal();
+        });
+        */
+        docById('btn_export_persona_brain').addEventListener('click', async function () {
+            const obj = await window.idb.GetIDBObject("persona");
+            window.util.saveAsFile(`ynbt-ai_agent_brain-${window.util.GetTimeStamp()}.json`, obj, document);
         });
       });
     });
@@ -656,26 +702,26 @@
           HISTORY:
           <button class="btn btn-primary" id="btn_load_convo">Load</button>
           <button class="btn btn-primary" id="btn_clear_convo">Clear</button>
-          <button class="btn btn-primary" id="btn_get_convo">Get</button>
+          <button class="btn btn-primary" id="btn_get_convo">Export</button>
         </div>
         
       `);
       container.on('open', function () {
-        $('#message-send').on('click', async function () {
-          await msgSend($("#message-input").value)
+        docById('message-send').addEventListener('click', async function () {
+          await msgSend(docById('message-input').value)
           //console.log("btn_submit_persona_chat");
         });
 
-        $('#btn_get_convo').on('click', async function () {
+        docById('btn_get_convo').addEventListener('click', async function () {
             const obj = await window.idb.GetIDBObject("conversation");
-            window.util.saveAsFile("ynbt-convo.json", obj, document);
+            window.util.saveAsFile(`ynbt-ai_agent_convo-${window.util.GetTimeStamp()}.json`, obj, document);
         });
 
-        $('#btn_load_convo').on('click', async function () {
+        docById('btn_load_convo').addEventListener('click', async function () {
           await msgGetHistory();
         });
 
-        $('#btn_clear_convo').on('click', async function () {
+        docById('btn_clear_convo').addEventListener('click', async function () {
           let text = "REALLY clear chat history????";
           if (confirm(text) == true) {
             //text = "You pressed OK!";
@@ -694,21 +740,22 @@
       container.getElement().html(`
         <div id="div_user_documents">
         </div>
-        <div class="mt-2 float-end">
-          <button class="btn btn-primary" id="btn_user_kb_add">Add KB</button>
-          <button class="btn btn-primary" id="btn_user_kb_get">Get KB</button>
+        <div class="mt-2" style="color:white">
+          Knowledebase:
+          <button class="btn btn-primary" id="btn_user_kb_add">Add</button>
+          <button class="btn btn-primary" id="btn_user_kb_get">Export</button>
         </div>
       `);
       container.on('open', function () {
-        $('#btn_user_kb_add').on('click', async function () {
+        docById('btn_user_kb_add').addEventListener('click', async function () {
             kb_input_title.value = "General Knowledge";
             kb_input_content.value = "";
             dlg_kb_input.showModal();
         });
 
-        $('#btn_user_kb_get').on('click', async function () {
+        docById('btn_user_kb_get').addEventListener('click', async function () {
             const obj = await window.idb.GetIDBObject("knowledgebase");
-            window.util.saveAsFile("ynbt-kb.json", obj, document);
+            window.util.saveAsFile(`ynbt-ai_agent_kb-${window.util.GetTimeStamp()}.json`, obj, document);
         });
       });
     });
@@ -716,34 +763,33 @@
 
     // Callback for every created stack
     myLayout.on( 'stackCreated', function( stack ){
-        $('.lm_header').hide();
     })
 
     //GoldenLayout init stuff
     myLayout.init();
-    $(window).resize(function () {
+    window.onresize=(function () {
       myLayout.updateSize((window).width, (window).height);
     });
     
     //DOM finished loading
-    $(window).load(async function() {
-      const dlg_info = $("#dlg_info")[0];
-      const tb_oai_key = $("#tb_oai_key")[0];
+    window.onload = async function() {
+      const dlg_info = docById('dlg_info');
+      const tb_oai_key = docById('tb_oai_key');
       
-      const dlg_kb_input = $("#dlg_kb_input")[0];
-      const kb_input_title = $("#kb_input_title")[0];
-      const kb_input_content = $("#kb_input_content")[0];
-      const kb_input_isGiantText = $("#kb_input_isGiantText")[0];
-      const kb_input_textchunker_chunkSize = $("#kb_input_textchunker_chunkSize")[0];
-      const kb_input_textchunker_chunkOverlap = $("#kb_input_textchunker_chunkOverlap")[0];
-      const kb_input_content_cancel = $("#kb_input_content_cancel")[0];
-      const kb_input_content_submit = $("#kb_input_content_submit")[0];
+      const dlg_kb_input = docById('dlg_kb_input');
+      const kb_input_title = docById('kb_input_title');
+      const kb_input_content = docById('kb_input_content');
+      const kb_input_isGiantText = docById('kb_input_isGiantText');
+      const kb_input_textchunker_chunkSize = docById('kb_input_textchunker_chunkSize');
+      const kb_input_textchunker_chunkOverlap = docById('kb_input_textchunker_chunkOverlap');
+      const kb_input_content_cancel = docById('kb_input_content_cancel');
+      const kb_input_content_submit = docById('kb_input_content_submit');
       dlg_kb_input.returnValue = "kb_input_content";
 
-      const dlg_persona_input = $("#dlg_persona_input")[0];
-      const persona_input_content = $("#persona_input_content")[0];
-      const persona_input_content_cancel = $("#persona_input_content_cancel")[0];
-      const persona_input_content_submit = $("#persona_input_content_submit")[0];
+      const dlg_persona_input = docById('dlg_persona_input');
+      const persona_input_content = docById('persona_input_content');
+      const persona_input_content_cancel = docById('persona_input_content_cancel');
+      const persona_input_content_submit = docById('persona_input_content_submit');
       dlg_persona_input.returnValue = "persona_input_content";
 
       tb_oai_key.value = my_oaiKey??"";
@@ -775,12 +821,22 @@
         dlg_persona_input.close("");
       });
 
-      let file_import_pdf = $("#file_import_pdf")[0];
+      let file_import_pdf = docById('file_import_pdf');
       file_import_pdf.addEventListener('change', kbImportPDF);
 
-      const file_import_json = $('#file_import_json')[0];
+      const file_import_json = docById('file_import_json');
       file_import_json.addEventListener('change',importJSONData);
-    });
+
+      
+      if (isMobile) {
+        // Mobile browser
+        console.log("Mobile browser detected");
+        //myLayout.getComponent('persona_brain').updateSize(0, 0)
+      } else {
+        // Desktop browser
+        console.log("Desktop browser detected");
+      }
+    };
   </script>
 
   

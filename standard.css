@@ -101,18 +101,26 @@ color: #999;
     width: 100%;
     overflow-y:scroll;
 }
-.list-group-item {
+.list-group-item_ {
+    width: 100%;
     padding: 0.25rem 0.25rem;
 }
+.list-group-item:hover {
+    _background-color: #45a049;
+    filter: invert(100%);
+}
+
+.list-group-item.active {
+    color: #fff !important;
+    background-color: #6baef6;
+}
+
 .docTitle-list{
     min-height: 40% !important;
     max-height: 80% !important;
     overflow-y:scroll;
 }
-.list-group-item.active {
-    color: #fff !important;
-    background-color: #6baef6;
-}
+
 
 .collapsable{
     display: inherit;

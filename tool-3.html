@@ -2,7 +2,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=0.9">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Book Writer</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
   <link rel="preload" href="modules/winbox.bundle.min.js" as="script">
@@ -11,6 +11,7 @@
     body{
       background-color: #000;
     }
+   
     .winbox.white{
       background:#fff
     }
@@ -41,59 +42,67 @@
 <body>
   <!-- JS INCLUDES -->
   <script src__="modules/jquery-1.12.4.min.js"></script>
-  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
   <script src="modules/winbox.bundle.min.js" async></script>
   
+  <!-- DATA -->
+  <script>
+
+    var book = {
+      places:[{timestamp:111,name:"Dystopian New York", content:"Description of 111"},{timestamp:222,name:"House 1",content: "Description of 222"}],
+      characters:[{timestamp:111,name:"Mina Harker",content:"Description of 111"}],
+      plotlines:[{timestamp:111,name:"Plotline 1",content:"Description of 111"}],
+      chapters:[{timestamp:111,name:"Chapter 1",content:"Description of 111"}],
+    }
+
+
+  </script>
   <!-- My Stuff -->
   <script src="keys.js"></script>
   <script type="module">
+
     import * as call_ai from "/modules/call_ai.js"
     import * as idb from "/modules/IndexDB.js"
     import * as util from '/modules/utility.js';
     import {VectorDB} from "/modules/VectorDB.js";
     import {ConversationDB} from "/modules/ConversationDB.js";
 
-    idb.SetDBName("ynbt-lite-ai_book_writer")
+    idb.SetDBName("ynbt-lite-ai_book_writer");
+    idb.SetDBStores(["scratchpad","book"]);
     window.call_ai = call_ai;
     window.idb = idb;
     window.util = util;
     window.VectorDB = new VectorDB();
     window.ConversationDB = new ConversationDB();
-
-   
   </script>
 
   <!-- FUNCTIONS -->
   <script type_="module">
+    function jsonGetScratchPad()
+    {
+      let objRoot = {};
+      
+      var inputs = document.querySelectorAll("input[type='text'],input[type='numeric'], textarea, select");
+      inputs.forEach(function (input) {
+          var key = input.id;
+          var value = input.value;
+          objRoot[key] = value;
+      });
+      
+      const keys = Object.keys(window["ynbt-ai_book_writer"]);
+      keys.forEach(key=>{
+        const val = window["ynbt-ai_book_writer"][key];
+        objRoot[key] = [val.x, val.y, val.width, val.height, val.min];
+
+      })
+    
+      console.log(objRoot);
+      return objRoot;
+    }
     function jsonDataExport()
     {
-      const wnd1 = window.wnd_storySetup;
-      const wnd2 = window.wnd_gen_storyPlotline;
-      const wnd3 = window.wnd_expand_storyPlotline;
-      var obj = 
-      {
-        opt_llm: $("#opt_llm")[0].value,
-        inf_temperature: Number($("#inf_temperature")[0].value),
-        inf_max_gen: Number($("#inf_max_gen")[0].value),
-      
-      
-        tb_gen_storyplotline_genres:$("#tb_gen_storyplotline_genres")[0].value,
-        tb_gen_storyplotline_timeperiod:$("#tb_gen_storyplotline_timeperiod")[0].value,
-        tb_gen_storyplotline_locations:$("#tb_gen_storyplotline_locations")[0].value,
-        ta_gen_storyplotline_initial_premise:$("#ta_gen_storyplotline_initial_premise")[0].value,
-
-        ta_gen_storyplotline_result:$("#ta_gen_storyplotline_result")[0].value,
-
-        ta_gen_storyplotpoint_source:$("#ta_gen_storyplotpoint_source")[0].value,
-        ta_gen_storyplotpoint_result:$("#ta_gen_storyplotpoint_result")[0].value,
-        tb_gen_storyplotpoint_style:$("#tb_gen_storyplotpoint_style")[0].value,
-
-        wnd_storySetup : [wnd1.x, wnd1.y, wnd1.width, wnd1.height],
-        wnd_gen_storyPlotline : [wnd2.x, wnd2.y, wnd2.width, wnd2.height],
-        wnd_expand_storyPlotline : [wnd3.x, wnd3.y, wnd3.width, wnd3.height],
-      }
-      console.log(obj);
-      window.util.saveAsFile("ynbt-ai_book_writer.json", obj, document);
+      const objRoot = jsonGetScratchPad();
+      window.util.saveAsFile(`ynbt-ai_book_writer-${window.util.GetTimeStamp()}.json`, objRoot, document);
     }
     function jsonDataImport(e)
     {
@@ -110,12 +119,18 @@
           keys.forEach(k=>{
             if(k.startsWith("wnd_"))
             {
-              window[k].x = data[k][0];
-              window[k].y = data[k][1];
-              window[k].width = data[k][2];
-              window[k].height = data[k][3];
-              window[k].minimize(false);
-              window[k].resize().move();
+              window["ynbt-ai_book_writer"][k].x = data[k][0];
+              window["ynbt-ai_book_writer"][k].y = data[k][1];
+              window["ynbt-ai_book_writer"][k].width = data[k][2];
+              window["ynbt-ai_book_writer"][k].height = data[k][3];
+              
+              const isMinimized = data[k][4]??false;
+              if(!isMinimized)
+              {
+                window["ynbt-ai_book_writer"][k].minimize(isMinimized);
+                window["ynbt-ai_book_writer"][k].resize().move();
+              }
+              
             }
             else
             {
@@ -131,6 +146,25 @@
       }
     }
     
+    function wndMinimizeAll()
+    {
+      const keys = Object.keys(window["ynbt-ai_book_writer"]);
+      keys.forEach(key=>{
+        const wnd = window["ynbt-ai_book_writer"][key];
+        wnd.minimize(true);
+
+      })
+    }
+    function wndRestoreAll()
+    {
+      const keys = Object.keys(window["ynbt-ai_book_writer"]);
+      keys.forEach(key=>{
+        const wnd = window["ynbt-ai_book_writer"][key];
+        wnd.restore();
+
+      })
+    }
+
     function getStorySetupPrompt()
     {
       const p_template=
@@ -148,53 +182,154 @@ INITIAL PREMISE: ${document.getElementById('ta_gen_storyplotline_initial_premise
       return p_template;
     }
     
-    function getPromptPlotline(llmType="CGPT")
+    function getPromptPlotline_ORG(llmType="CGPT")
     {
       const storySetup = getStorySetupPrompt();
-
-      if(llmType=="CGPT")
-      {
-        return `${storySetup}
-
-[OUTPUT MARKDOWN SAMPLE]
-# Title: this story suggested title
-## Genre: this story genre
-## Narative Structure Name: story narative structure name, such as introduction to the ordinary world.
-### Plot Point Name - current story plot point catchy title
-#### Plot Point Event catchy event title
-write plot point story here.
-
-[INSTRUCTION]
-Write a VERY DETAILED PLOT POINT EVENTS for a story. 
-Write the STRUCTURE of the story according to the STORY GENRE and NARRATIVE STRUCTURE. 
-Write the PLOT POINTS of the story according to the STORY GENRE and NARRATIVE STRUCTURE. 
-Devide the PLOT POINTS into several chapters.
-Use OUTPUT MARKDOWN SAMPLE for output. 
-Don't write anything else.`;
-      }
-
-      else{
-        return `### Instruction:
+      return `### Instruction:
 ${storySetup}
 
 [SAMPLE OUTPUT]
-* Story Title: write a very catchy title for the story.
-* Story Structure List:
-  + Plot Point Name: plot point name according STORY NARRATIVE STRUCTURE (such as introduction to the ordinary world).
-    + Chapter Title: a very catchy title for this plot point.
-      + Plot Point Story List: very detail stories about the events happened in the current story plot point.
+Story Title: write a very catchy title for the story.
+Story Structure List:
+Plot Point Name: plot point name according STORY NARRATIVE STRUCTURE (such as introduction to the ordinary world).
+Chapter Title: a very catchy title for this plot point.
+Plot Point Event List: very detail description about the events happened in the current story plot point.
+
+You are an expert book writer.
+Write your response following the [SAMPLE OUTPUT].
+### Response:\n`; 
+    }
+
+
+    function getPromptPlotline(llmType="CGPT")
+    {
+      const storySetup = getStorySetupPrompt();
+      return `### Instruction:
+${storySetup}
+
+[SAMPLE OUTPUT]
+Story Title: write a very catchy title for the story.
+Story Structure List:
+Plot Point Name: plot point name according STORY NARRATIVE STRUCTURE (such as introduction to the ordinary world).
+Chapter Title: a very catchy title for this plot point.
+Plot Point Event List: list of the scenes and events that happened in the current story plot point.
 
 Write your response following the [SAMPLE OUTPUT].
-### Response:\n`;
-      }
+### Response:\n`; 
+    }
+
+
+    function getPromptPlotline_(llmType="CGPT")
+    {
+      const storySetup = getStorySetupPrompt();
+      return `### Instruction:
+${storySetup}
+
+sample [STORY STRUCTURE LIST]
+Plot Point Name: plot point name according the story structure
+Plot Point Chapters Lists: write the chapter list for the current Plot Point here. Include small summary of each chapter.
+
+Write your response following the sample [STORY STRUCTURE LIST].
+### Response:\n`; 
     }
     
+    function getPromptExpandPlotline_ORG(llmType="CGPT")
+    {
+      const storySetup = getStorySetupPrompt();
+      const ta_gen_storyplotpoint_source = $("#ta_gen_storyplotpoint_source")[0]; 
+      const storyTellingStyle = $("#tb_gen_storyplotpoint_style")[0].value;
+      let plotPoint = ta_gen_storyplotpoint_source.value;
+      
+      plotPoint = plotPoint.replace(/^[\t\d. *+-\s]+/gm, '');
+      ta_gen_storyplotpoint_source.value = plotPoint
+      
+      const p_ll2= `### Instruction:
+${storySetup}
+
+[PLOT POINT TO EXPAND]
+${plotPoint}
+
+[STEPS TO EXPAND THE PLOT POINT]
+Write a very detailed content and dialogues for [PLOT POINT TO EXPAND] in a "${storyTellingStyle}" style.
+Describe the looks, feels, smells for the scenery or places in great detail.
+Describe the characters feelings and actions in great details.
+Always remember, SHOW don't TELL.
+### Response:\n`;
+
+      return p_ll2;
+    }
+
     function getPromptExpandPlotline(llmType="CGPT")
     {
       const storySetup = getStorySetupPrompt();
-      let plotPoint = document.getElementById("ta_gen_storyplotpoint_source").value;
-      let storyTellingStyle = $("#tb_gen_storyplotpoint_style")[0].value;
-      plotPoint = plotPoint.replaceAll(`\t`,``);
+      const ta_gen_storyplotpoint_source = $("#ta_gen_storyplotpoint_source")[0]; 
+      const storyTellingStyle = $("#tb_gen_storyplotpoint_style")[0].value;
+      let plotPoint = ta_gen_storyplotpoint_source.value;
+      
+      plotPoint = plotPoint.replace(/^[\t\d. *+-\s]+/gm, '');
+      ta_gen_storyplotpoint_source.value = plotPoint
+      
+      const p_ll2= `### Instruction:
+${storySetup}
+
+[PLOT POINT TO EXPAND]
+${plotPoint}
+
+[STEPS TO EXPAND THE PLOT POINT]
+Immerse yourself in the world of the story. Provide vivid and elaborate depictions for each scene, capturing the sights, sensations, and scents of the scenery and locations. Delve deep into the characters' emotions and actions, offering intricate portrayals of their feelings and behaviors. Don't hold back on elaborating the dialogues and interactions between the characters, painting a rich and engaging picture of their exchanges.
+Never rush to the end of the scene, keep the story pace nice and calm.
+Always keep the transition between scene smooth.
+Always use the "${storyTellingStyle}" style for writing.
+Always remember, SHOW don't TELL.
+Write your response.
+
+### Response:\n`;
+
+      return p_ll2;
+    }
+
+    function getPromptGenerateChar()
+    {
+      const opt_gen_storycharacter_agegroup = $("#opt_gen_storycharacter_agegroup")[0].value;
+      const opt_gen_storycharacter_sex = $("#opt_gen_storycharacter_sex")[0].value;
+      const opt_gen_storycharacter_role = $("#opt_gen_storycharacter_role")[0].value;
+      let p_storySetup = getStorySetupPrompt();
+
+      let p_template = `### Instruction:\n
+${p_storySetup}
+
+[OUTPUT SAMPLE]
+Name: this person full name
+Gender: ${opt_gen_storycharacter_sex}
+Age Group: ${opt_gen_storycharacter_agegroup}
+Role In The Story: ${opt_gen_storycharacter_role}
+
+Personalities: 
+write the personality description of this person here.
+
+Hobbies: 
+write the list of this person hobbies.
+
+Short Personal History:
+write important events that occured in live of this person up until the start of the story, here.
+
+[STEPS TO GENERATE THIS CHARACTER INFORMATION]
+Write your response following the [OUTPUT SAMPLE]. Never change the Gender, Age Group or Role In The Story.
+### Response:\n`;
+
+      return p_template;
+    }
+
+    function getPromptExpandPlotlineSceneDialogs()
+    {
+      const storySetup = getStorySetupPrompt();
+      const ta_gen_storyplotpointscenedialogs_source = $("#ta_gen_storyplotpointscenedialogs_source")[0]; 
+      const storyTellingStyle = $("#tb_gen_storyplotpointscenedialogs_style")[0].value;
+      let plotPoint = ta_gen_storyplotpointscenedialogs_source.value;
+      
+      plotPoint = plotPoint.replace(/^[\t\d. *+-\s]+/gm, '');
+      ta_gen_storyplotpointscenedialogs_source.value = plotPoint
+      
       const p_ll2= `### Instruction:
 ${storySetup}
 
@@ -230,6 +365,7 @@ Always remember, SHOW don't TELL.
       return rspFull;
     }
     
+    
     async function generateStoryPlotPoint()
     {
       let p_cgpt = getPromptExpandPlotline("CGPT");
@@ -244,7 +380,6 @@ Always remember, SHOW don't TELL.
       rspMsgTextArea.value = rspFull.trim();
       alert("Plot Point Expander: Finished");
     }
-
 
     async function continueStoryPlotPoint()
     {
@@ -274,7 +409,6 @@ Always remember, SHOW don't TELL.
       alert("Plot Lines Generator: Finished");
     }
 
-
     async function continueStoryPlotline()
     {
       const rspMsgTextArea = document.getElementById("ta_gen_storyplotline_result");
@@ -287,6 +421,52 @@ Always remember, SHOW don't TELL.
       alert("Plot Lines Generator: Finished");
     }
 
+    
+    
+    async function generateStoryChar()
+    {
+      const rspMsgTextArea = $("#ta_gen_storycharacter_result")[0];
+      rspMsgTextArea.value = "";
+      
+      const p_template = getPromptGenerateChar();
+      console.log(p_template);
+
+      rspMsgTextArea.value = await call_llm(rspMsgTextArea, p_template, p_template)
+      alert("Character Generator: Finished");
+    }
+
+    async function continueStoryChar()
+    {
+      const rspMsgTextArea = $("#ta_gen_storycharacter_result")[0];
+      let lastRsp = rspMsgTextArea.value.trim();
+      let p_template = getPromptGenerateChar();
+
+      p_template = `${p_template}${lastRsp}`;
+      console.log(p_template);
+      let rspFull = await call_llm(rspMsgTextArea, p_template, p_template)
+      
+      rspMsgTextArea.value = `${lastRsp}${rspFull}`;
+      alert("Character Generator: Finished");
+    }
+  
+    function bookSectionClick(bookSectionName)
+    {
+      let ul_book_section_items = $("#ul_book_section_items")[0];
+      ul_book_section_items.innerHTML = "";
+      let content = "";
+      book[bookSectionName].forEach(item=>{
+        content+=`<li class="list-group-item" onclick="bookSectionItemClick('${bookSectionName}', ${item.timestamp})">${item.name}-${item.timestamp}</li>`
+      })
+      ul_book_section_items.innerHTML = content;
+    }
+    function bookSectionItemClick(bookSectionName,itemTimestamp)
+    {
+      let ta_book_section_item_content = $("#ta_book_section_item_content")[0];
+      const si = book[bookSectionName].filter(si=>si.timestamp==itemTimestamp);
+      ta_book_section_item_content.value = si[0].content;
+    }
+  
+  
   </script>
 
 
@@ -297,27 +477,29 @@ Always remember, SHOW don't TELL.
     class: "dark no-max no-full no-close no-resize",
     _x: "left",
     _y: "top",
-    width: "15%",
+    width: "10%",
     height: "50%",
     html: `
-        <div class="" style="margin_:0.9em;">
+        <div class="" style="padding:0.9em;">
+
           <div class="row mb-3" style="color:white;">  
-            <label for="tb_oai_key">OAI Key</label>
+            <label for="tb_oai_key" style="padding:0em;">OAI Key</label>
             <input type="password" id="tb_oai_key" value="xxxx" style="">
           </div>
-          <div class="row mb-3" style="color:white">  
-            <label >JSON Data</label>
-            <div class="_hstack">
+
+          <div class="row mb-3" style="color:white;">  
+            <label style="padding:0em;">JSON Data</label>
+            <div style="padding-left:0!important;">
               <label for="file_import_json" class="button-label">Import</label>
-            <input type="file" id="file_import_json" accept=".json" style="display: none;">       
+              <input type="file" id="file_import_json" accept=".json" style="display: none;">       
             
-            <label class="button-label" onclick="jsonDataExport()">Export</label>
+              <label class="button-label" onclick="jsonDataExport()">Export</label>
             </div>
             
           </div>
 
           <div class="row mb-3">
-            <label for="opt_llm">LLM Type</label>
+            <label for="opt_llm" style="padding:0em;">LLM Type</label>
             <select id="opt_llm">
               <option value="CGPT">OAI ChatGPT-3.5-turbo</option>
               <option value="LL2">LLC LLama2-Chat</option>
@@ -327,6 +509,14 @@ Always remember, SHOW don't TELL.
           <div class="row mb-3">
             <input style="width:4em;" type="numeric" id="inf_temperature" value="0.7" title="Geneneration Temperature">
             <input style="width:4em;" type="numeric" id="inf_max_gen" value="256" title="Max.Geneneration">
+          </div>
+
+          <div class="row mb-3">
+            <label style="padding:0em;">Window Control</label>
+            <div style="padding-left:0em;">
+              <button id="wnd_minimize_all" onclick="wndMinimizeAll()">[M]</button>
+              <button id="wnd_restore_all" onclick="wndRestoreAll()">[R]</button>
+            </div>
           </div>
         </div>
 `
@@ -357,7 +547,7 @@ Always remember, SHOW don't TELL.
                 <input style="width:70%;" type="text" id="tb_gen_storyplotline_locations" value="new york">
               </div>
 
-              <div class="mb-3" style="width:100%;"> 
+              <div class="" style="width:100%;"> 
                 <label">Additional Notes</label>
                 <textarea style="width:100%;" id="ta_gen_storyplotline_initial_premise" rows="5">The MFC is a vampire.</textarea>
               </div>
@@ -410,19 +600,129 @@ Always remember, SHOW don't TELL.
       `
     });
 
+    const wnd_expand_storyPlotPointSceneDialog = new WinBox({
+    title: "Expand Story Plot Point Scene Dialogs",
+    class: "dark no-max no-full no-close",
+    min: true,
+    x: "center",
+    y: "center",
+    width: "40%",
+    height: "60%",
+    html: `
+        <div style="padding:1em;">
+          <div class="mb-3">
+            <label>Plot Point To Expand</label>
+            <textarea style="width:100%;height:20%" id="ta_gen_storyplotpointscenedialogs_source"></textarea>
+          </div>
+          <div class="mb-3" style="">    
+            <button class="btn btn-primary" id="btn_gen_storyplotpointscenedialogs_expand" onclick="generateStoryPlotPointSceneDialogs()">Expand</button>
+            <button class="btn btn-primary" id="btn_gen_storyplotpointscenedialogs_continue" onclick="continueStoryPlotPointSceneDialogs()">Continue</button>
+            <input style="width:7em;" type="text" id="tb_gen_storyplotpointscenedialogs_style" value="dark noir" title="Dialog style">
+          </div>
 
+          <label>Expanded Plot Point</label>
+          <textarea style="width:100%;height:80%" id="ta_gen_storyplotpointscenedialogs_result"></textarea>
+        </div>
+      `
+    });
+    const wnd_gen_storyCharacter = new WinBox({
+    title: "Generate Story Character",
+    class: "dark no-max no-full no-close",
+    min: true,
+    x: "center",
+    y: "center",
+    width: "40%",
+    height: "60%",
+    html: `
+        <div style="padding:1em;">
+          <div class="_row mb-3">
+            <label for="opt_gen_storycharacter_agegroup" style="padding:0em;">Age Group</label>
+            <select id="opt_gen_storycharacter_agegroup">
+              <option value="children">Children</option>
+              <option value="teen">Teenager</option>
+              <option value="young adult">Young Adult</option>
+              <option value="adult">Adult</option>
+              <option value="elderly">Elderly</option>
+            </select>
+
+            <label for="opt_gen_storycharacter_sex" style="padding:0em;">Sex</label>
+            <select id="opt_gen_storycharacter_sex">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+
+            <label for="opt_gen_storycharacter_role" style="padding:0em;">Role In the story</label>
+            <select id="opt_gen_storycharacter_role">
+              <option value="Main Female Char (MFC)">Main Female Char</option>
+              <option value="Secondary Female Char (SFC)">Secondary Female Char</option>
+              <option value="Main Male Char (MMC)">Main Male Char</option>
+              <option value="Secondary Male Char (SMC)">Secondary Male Char</option>
+            </select>
+          </div>
+
+          <div class="mb-3" style="">    
+            <button class="btn btn-primary" id="btn_gen_storycharacter_expand" onclick="generateStoryChar()">Expand</button>
+            <button class="btn btn-primary" id="btn_gen_storycharacter_continue" onclick="continueStoryChar()">Continue</button>
+          </div>
+          <textarea style="width:100%;height:80%" id="ta_gen_storycharacter_result"></textarea>
+          
+
+
+        </div>
+      `
+    });
+
+    const wnd_book = new WinBox({
+    title: "Book Manager",
+    class: "dark no-max no-full no-close",
+    min: false,
+    x: "center",
+    y: "center",
+    width: "40%",
+    height: "60%",
+    html: `
+          <div class="row g-1" style="padding:0.3em;height:100%;">
+            <div class="col-2" style="overflow-x:clip;">
+              SECTIONS
+              <ul id="ul_book_sections" class="list-group list-group-flush">
+                <li class="list-group-item" onclick="bookSectionClick('places')">Places</li>
+                <li class="list-group-item" onclick="bookSectionClick('characters')">Characters</li>
+                <li class="list-group-item" onclick="bookSectionClick('plotlines')">Plotlines</li>
+                <li class="list-group-item" onclick="bookSectionClick('chapters')">Chapters</li>
+              </ul>
+            </div>
+
+            <div class="col-4" style="">
+              ITEMS
+              <ul id="ul_book_section_items" class="list-group list-group-flush">
+              </ul>
+            </div>
+
+            <div class="col-6" style="">
+              CONTENT
+              <textarea id="ta_book_section_item_content" style="width:100%;height:100%;resize: none!important;" id="ta_book_section_item_content"></textarea>
+            </div>
+          </div>
+      `
+    });
     
-    $(window).load(async function() {
-      window.wnd_storySetup = wnd_storySetup;
-      window.wnd_gen_storyPlotline = wnd_gen_storyPlotline;
-      window.wnd_expand_storyPlotline = wnd_expand_storyPlotline;
+    window.onload = async function() {
+      window["ynbt-ai_book_writer"] = {};
+      window["ynbt-ai_book_writer"].wnd_storySetup = wnd_storySetup;
+      window["ynbt-ai_book_writer"].wnd_gen_storyPlotline = wnd_gen_storyPlotline;
+      window["ynbt-ai_book_writer"].wnd_expand_storyPlotline = wnd_expand_storyPlotline;
+      window["ynbt-ai_book_writer"].wnd_gen_storyCharacter = wnd_gen_storyCharacter;
+      window["ynbt-ai_book_writer"].wnd_expand_storyPlotPointSceneDialog = wnd_expand_storyPlotPointSceneDialog;
+      wnd_storySetup.x = (wnd_settings.x+wnd_settings.width)+5;
+      wnd_storySetup.y = wnd_settings.y;
+      wnd_storySetup.move();
 
       const tb_oai_key = $("#tb_oai_key")[0];
       tb_oai_key.value = my_oaiKey??"";
 
       const file_import_json = document.getElementById('file_import_json');
       file_import_json.addEventListener('change',jsonDataImport);
-    });
+    };
   </script>
 </body>
 </html>
