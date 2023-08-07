@@ -75,6 +75,10 @@ export function GetDateFromTimeStamp(seconds)
 {
    return new Date(seconds*1000).toISOString();
 }
+export function GetLocalDateFromTimeStamp(seconds)
+{
+   return new Date(seconds*1000).toLocaleString();
+}
 
 export function getTimeStampFromDateTime(dateTime)
 {

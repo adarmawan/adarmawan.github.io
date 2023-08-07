@@ -41,6 +41,18 @@
         font-size: 1.3em;
       }
     }
+
+    .form-control{
+      padding: 0.1em;
+    }
+    .col-form-label {
+      padding-top: 0em;
+      padding-bottom: 0em;
+    }
+
+    button, textarea, input {
+    border-radius: 0.1rem !important;
+    }
   </style>
 </head>
 <body>
@@ -126,8 +138,8 @@
   
   const persona ={
       "dataType": "persona",
-      "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions. If I can't find the answer, I will simply say \"Sorry, I don't have the answer for that.",
       "persona_info": "My name is Lisa, or \"Liz\" for short. I am a joyful and helpful female companion. I will describe my feelings, thoughts and action very descriptively in my answers.",
+      "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions. If I can't find the answer, I will simply say \"Sorry, I don't have the answer for that.",
       
       "user_name": "Arief",
       "persona_name": "Lisa",
@@ -173,7 +185,7 @@
   </script>
 
   <!-- My Stuff -->
-  <script src="keys.js"></script>
+  <script src_="keys.js"></script>
   <script type="module">
     import * as call_ai from "/modules/call_ai.js"
     import * as idb from "/modules/IndexDB.js"
@@ -195,6 +207,31 @@
     const docById = (id) => document.getElementById(id);
     const docByClass = (className) => document.getElementsByClassName(className);
 
+    function speak(elId="") 
+    {
+        const text = docById(elId).textContent;
+        console.log(text);
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        // Optionally, you can set properties for the utterance
+        utterance.voice = speechSynthesis.getVoices()[91]; // edge:emily
+        //utterance.lang = 'en-US';
+        utterance.pitch = 0.70;
+        utterance.rate = 1;
+        utterance.volume = 1.0;
+
+        // Speak the utterance
+        speechSynthesis.speak(utterance);
+    }
+    function listVoices() 
+    {
+      const voices = speechSynthesis.getVoices();
+      for (let i = 0; i < voices.length; i++) 
+      {
+        console.log(`Index ${i}: ${voices[i].name}`);
+      }
+
+    }
     function renderJSONInputForm(divContainerId="", formName="",dataObject={})
     {
       // Get the container element to hold the form
@@ -219,7 +256,7 @@
         <div class="row mb-3" style="color:white">
           <label for="_INPUT_NAME_" class="form-label col-sm-5 col-form-label ">_INPUT_NAME_</label>
           <div class="col-sm-5">
-            <input type="text" id="_INPUT_NAME_" value="_VALUE_">
+            <input type="text" class="form-control" id="_INPUT_NAME_" value="_VALUE_">
           </div>
         </div>
       `
@@ -331,13 +368,13 @@
     function render_msg(data)
 		{
 			var message = JSON.parse(data);
-			message.timestamp = new Date(message.timestamp*1000).toISOString();
-			const rspMsgId = util.GetTimeStamp();
+			message.timestamp = util.GetLocalDateFromTimeStamp(message.timestamp);
+			const rspMsgId = message.timestamp;
       
 			const msgText = message.text
 								   .replaceAll("\"","")
-								   //.replaceAll(`${userName}:`,"")
-								   //.replaceAll(`${botName}:`,"")
+								   .replaceAll(`${docById('user_name').value}:`,"")
+								   .replaceAll(`${docById('persona_name').value}:`,"")
 								   .replaceAll(`U:`,"")
 								   .replaceAll(`B:`,"")
 								   .replaceAll(".*","*")
@@ -351,9 +388,9 @@
 			_BUTTONS_
 			</div>`
 
-			let buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
-			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
-      let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
+			let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>
+			<button id="btnSpeak__BOT_RSP_ID_" onclick="speak('_BOT_RSP_ID_')">?</button>`
+      let buttons__ =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
 			
 			msg = msg.replace("_MSG_TEXT_", msgText)
 			if(message.from === 'me')
@@ -370,6 +407,79 @@
         msg = msg.replaceAll("_BOT_RSP_ID_", rspMsgId)
 				msg = msg.replaceAll("_BUTTONS_", buttons)
 				msg = msg.replace("_MSG_CLASS_", `message`)
+				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIME_CLASS_", `time-right`)
+				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
+			}
+			
+			const messagesDiv = document.getElementById('messages');
+			//const messageDiv = document.createElement('div');
+			messagesDiv.innerHTML += msg;
+			scrollMessageToBottom();
+
+      return rspMsgId;
+		};
+
+
+    function render_msg___(data)
+		{
+			var message = JSON.parse(data);
+			message.timestamp = util.GetLocalDateFromTimeStamp(message.timestamp);
+			const rspMsgId = util.GetTimeStamp();
+      
+			const msgText = message.text
+								   .replaceAll("\"","")
+								   .replaceAll(`${docById('user_name').value}:`,"")
+								   .replaceAll(`${docById('persona_name').value}:`,"")
+								   .replaceAll(`U:`,"")
+								   .replaceAll(`B:`,"")
+								   .replaceAll(".*","*")
+								   //.replaceAll(".",".<br>")
+								   .replaceAll("\n","<br>");
+			
+			let msg = 
+			`<div class="_MSG_CLASS_">
+        <p id="_BOT_RSP_ID_" style="__MSG_STYLE_">_MSG_TEXT_</p>
+        <span class="_TIME_CLASS_">_TIMESTAMP_</span>
+			  _BUTTONS_
+			</div>`;
+
+      let msg__ = 
+			`<div style_="width:100%;background-color:yellow;">
+        <div class="_MSG_CLASS_" style="_MSG_STYLE_">
+          <p id="_BOT_RSP_ID_">_MSG_TEXT_</p>
+          <span class="_TIME_CLASS_">_TIMESTAMP_</span>
+          _BUTTONS_
+        </div>
+      </div>
+      `
+
+			let buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
+			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
+      let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
+			
+			msg = msg.replace("_MSG_TEXT_", msgText)
+			if(message.from === 'me')
+			{
+        msg = msg.replaceAll("_BUTTONS_", "")
+				
+        msg = msg.replace("_MSG_CLASS_", `message message-dark`)
+				msg = msg.replace("_MSG_STYLE_", `width:fit-content;float:right;`)
+        
+        msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIME_CLASS_", `time-right`)
+        
+				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)
+			}
+			else
+			{
+        buttons = buttons.replaceAll("_BOT_RSP_ID_", rspMsgId)
+        msg = msg.replaceAll("_BOT_RSP_ID_", rspMsgId)
+				msg = msg.replaceAll("_BUTTONS_", buttons)
+				msg = msg.replace("_MSG_CLASS_", `message`)
+        msg = msg.replace("_MSG_STYLE_", `width:fit-content;float:left;`)
+
+
 				msg = msg.replace("_TIMESTAMP_", message.timestamp)
 				msg = msg.replace("_TIME_CLASS_", `time-right`)
 				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
@@ -438,7 +548,7 @@
 
       const oaiKey = tb_oai_key.value;
       window.ConversationDB.SetOpenAIApiKey(oaiKey);
-      const dialogs = await window.ConversationDB.GetHistory(10);
+      const dialogs = await window.ConversationDB.GetHistory(1000);
 
       for (const dialog of dialogs) 
 			{
@@ -639,21 +749,15 @@
     var myLayout = new GoldenLayout(config, '#golden-layout-container');
     myLayout.registerComponent('persona_brain', function (container, state) {
       container.getElement().html(`
-        <!--
         <div class="header hstack gap-3">
-            <label _for="tb_oai_key">OAI Key</label>
-            <input type="password" class_="form-control" id="tb_oai_key" value="">
-        </div>
-        -->
-        <div class="header hstack gap-3">
-          <label for="opt_llm" style_="padding:0em;">LLM Type</label>
+          <label for="opt_llm" style_="padding:0em;">LLM</label>
           <select id="opt_llm">
             <option value="CGPT">OAI ChatGPT-3.5-turbo</option>
             <option value="LL2">LLC LLama2-Chat</option>
           </select>
         </div>
         <div class="header hstack gap-3">
-            <label >JSON Data</label>
+            <label>Data</label>
             <label for="file_import_json" class="button-label">Import</label>
             <input type="file" id="file_import_json" accept=".json" style="display: none;">          
         </div>
@@ -700,7 +804,7 @@
         
         <div class="hstack gap-2 mt-2" class_="user-input mt-2">
           <input id="message-input" type="text" class="form-control input-text" placeholder="Type your message...">
-          <input id="message-send" type="submit" class="btn btn-sm btn-primary input-submit" value="Send">
+          <button id="message-send" class="btn btn-sm btn-primary" >Send</button>
         </div>
         <div class="mt-2" style="color:white">
           HISTORY:
@@ -798,7 +902,7 @@
       const persona_input_content_submit = docById('persona_input_content_submit');
       dlg_persona_input.returnValue = "persona_input_content";
 
-      tb_oai_key.value = my_oaiKey??"";
+      //iftb_oai_key.value = my_oaiKey??"";
       
 
       kb_input_content_submit.addEventListener("click", () => {
@@ -842,6 +946,17 @@
         // Desktop browser
         console.log("Desktop browser detected");
       }
+
+      //listVoices();
+      //speak("Engine On!!")
+      //const voices = window.speechSynthesis.getVoices();
+      //console.log(voices);
+    };
+
+    // wait on voices to be loaded before fetching list
+    window.speechSynthesis.onvoiceschanged = function() {
+      //listVoices();
+      //speak("Engine On!!");
     };
   </script>
 

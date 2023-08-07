@@ -140,7 +140,11 @@ export async function call_oai_completion_stream(p_system, p_final="", oaiKey=""
                     let jObj = JSON.parse(c.replace("data: ",""));
                     if(jObj.choices[0].finish_reason==null)
                     {
-                        aiAnswerTextArea.value += jObj.choices[0].delta.content;
+                        if(aiAnswerTextArea.nodeName=="P")
+                            aiAnswerTextArea.textContent += jObj.choices[0].delta.content;
+                        else
+                            aiAnswerTextArea.value += jObj.choices[0].delta.content;
+
                         rspMsg += jObj.choices[0].delta.content;
                     }
                     
