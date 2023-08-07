@@ -574,24 +574,41 @@
               const data = JSON.parse(contents);
               const dataType = data.dataType ?? "";
 
-              if(dataType!="conversation" && dataType!="persona" && dataType!="knowledgebase")
+              if(dataType!="conversation" && dataType!="persona" && dataType!="knowledgebase" && dataType!="agent")
               {
                 alert("Invalid JSON File");
               }
               else
               {
-                const userRsp = confirm(`Replace ${dataType.toUpperCase()} with this JSON ?`);
-                if(userRsp)
+
+                if(dataType=="agent")
                 {
-                  //console.log(data);
-                  await window.idb.SaveIDBObject(data);
-                  alert("Finished importing JSON file");
-                  location.reload();
+                  const userRsp = confirm(`Replace Agent data with this JSON ?`);
+                  if(userRsp)
+                  {
+                    if (data['persona']!=null) await window.idb.SaveIDBObject(data['persona']);
+                    if (data['conversation']!=null) await window.idb.SaveIDBObject(data['conversation']);
+                    if (data['knowledgebase']!=null) await window.idb.SaveIDBObject(data['knowledgebase']);
+                    alert("Finished importing JSON file");
+                    location.reload();
+                  }
                 }
                 else
                 {
-                  location.reload();
+                  const userRsp = confirm(`Replace ${dataType.toUpperCase()} with this JSON ?`);
+                  if(userRsp)
+                  {
+                    //console.log(data);
+                    await window.idb.SaveIDBObject(data);
+                    alert("Finished importing JSON file");
+                    location.reload();
+                  }
+                  else
+                  {
+                    location.reload();
+                  }
                 }
+                
                 
               }                   
             };
@@ -605,6 +622,17 @@
 
     }
     
+    async function exportJSONData()
+    {
+      let obj = {};
+      
+      obj.dataType = "agent";
+      obj.persona = await window.idb.GetIDBObject("persona");
+      obj.conversation = await window.idb.GetIDBObject("conversation");
+      obj.knowledgebase = await window.idb.GetIDBObject("knowledgebase");
+      window.util.saveAsFile(`ynbt-ai_agent-${window.util.GetTimeStamp()}.json`, obj, document);
+    }
+
     async function click_delete_dialog(dialog_id)
 		{
 			const oaiKey = tb_oai_key.value;
@@ -760,6 +788,7 @@
             <label>Data</label>
             <label for="file_import_json" class="button-label">Import</label>
             <input type="file" id="file_import_json" accept=".json" style="display: none;">          
+            <label class="button-label" onclick="exportJSONData()">Export</label>
         </div>
 
         <div id="div_persona_brain_container">
