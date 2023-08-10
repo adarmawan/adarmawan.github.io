@@ -58,7 +58,7 @@
 <body>
   <!-- pop-up dialog box, information -->
   <dialog id="dlg_info">
-    <h1> Importing Large Text </h1>
+    <h1 id="dlg_info_title"> Importing Large Text </h1>
   </dialog>
   <dialog id="dlg_kb_input">
     <form method="dialog" style="width: 80vw;">
@@ -99,6 +99,22 @@
       <div>
         <button id="persona_input_content_cancel" type="reset">Cancel</button>
         <button id="persona_input_content_submit" type="submit">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg_edit_dialog">
+    <form method="dialog" style="width: 50vw;">
+
+      <label id="dlg_lbl_edit_dialog_ta_user" for="dlg_edit_dialog_ta_user">ta_user</label>      
+      <textarea type="text" id="dlg_edit_dialog_ta_user" rows="5" style="width:50vw;"></textarea>
+
+      <label id="dlg_lbl_edit_dialog_ta_persona" for="dlg_edit_dialog_ta_persona">ta_persona</label>
+      <textarea type="text" id="dlg_edit_dialog_ta_persona" rows="5" style="width:50vw;"></textarea>
+
+      <div>
+        <button id="dlg_edit_dialog_btn_cancel" type="reset" onclick="dlg_edit_dialog.close('CANCEL')">Cancel</button>
+        <button id="dlg_edit_dialog_btn_submit" type="submit" onclick="dlgEditDialogSubmit()">Submit</button>
       </div>
     </form>
   </dialog>
@@ -368,7 +384,6 @@
     function render_msg(data)
 		{
 			var message = JSON.parse(data);
-			message.timestamp = util.GetLocalDateFromTimeStamp(message.timestamp);
 			const rspMsgId = message.timestamp;
       
 			const msgText = message.text
@@ -389,15 +404,15 @@
 			</div>`
 
 			let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>
-			<button id="btnSpeak__BOT_RSP_ID_" onclick="speak('_BOT_RSP_ID_')">?</button>`
-      let buttons__ =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
-			
+			<button id="btnSpeak__BOT_RSP_ID_" onclick="speak('_BOT_RSP_ID_')">?</button>
+      <button id="btnEdit__BOT_RSP_ID_" onclick="msgEdit('_DIALOG_ID_')">=</button>`
+      
 			msg = msg.replace("_MSG_TEXT_", msgText)
 			if(message.from === 'me')
 			{
 				msg = msg.replaceAll("_BUTTONS_", "")
 				msg = msg.replace("_MSG_CLASS_", `message message-dark`)
-				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIMESTAMP_", util.GetLocalDateFromTimeStamp(message.timestamp))
 				msg = msg.replace("_TIME_CLASS_", `time-left`)
 				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)
 			}
@@ -407,7 +422,7 @@
         msg = msg.replaceAll("_BOT_RSP_ID_", rspMsgId)
 				msg = msg.replaceAll("_BUTTONS_", buttons)
 				msg = msg.replace("_MSG_CLASS_", `message`)
-				msg = msg.replace("_TIMESTAMP_", message.timestamp)
+				msg = msg.replace("_TIMESTAMP_", util.GetLocalDateFromTimeStamp(message.timestamp))
 				msg = msg.replace("_TIME_CLASS_", `time-right`)
 				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
 			}
@@ -562,6 +577,33 @@
       await window.idb.SaveIDBObject(conversation);
     }
     
+    async function msgEdit(msgId="msg GUID")
+    {
+      const dialog = await window.ConversationDB.GetDialog(msgId);
+      console.log(dialog);
+      const user_name = docById('user_name').value;
+      const persona_name = docById('persona_name').value;
+      
+      dlg_lbl_edit_dialog_ta_user.textContent = user_name.replace(":","");
+      dlg_lbl_edit_dialog_ta_persona.textContent = persona_name.replace(":","");
+      dlg_edit_dialog_ta_user.value = dialog[1].replace(user_name+":",""); 
+      dlg_edit_dialog_ta_persona.value = dialog[2].replace(persona_name+":",""); 
+      dlg_edit_dialog.msgId = msgId;
+      dlg_edit_dialog.showModal();
+    }
+    async function dlgEditDialogSubmit()
+    {
+      docById('dlg_info_title').textContent = "Updating Dialog";
+      dlg_info.showModal();
+
+      const msgUser = `${docById('user_name').value}:${dlg_edit_dialog_ta_user.value}`;
+      const msgPersona = `${docById('persona_name').value}:${dlg_edit_dialog_ta_persona.value}`;
+      console.log(msgUser)
+      console.log(msgPersona)
+      await window.ConversationDB.UpdateDialog(dlg_edit_dialog.msgId, msgUser, msgPersona);
+      dlg_info.close();
+    }
+
     async function importJSONData(event)
     {
       try 
@@ -643,6 +685,7 @@
 
     async function kbAddItem()
     {
+      docById('dlg_info_title').textContent = "Importing Knowledge Base";
       dlg_info.showModal();
       const oaiKey = tb_oai_key.value;
       window.VectorDB.SetOpenAIApiKey(oaiKey);
@@ -925,13 +968,20 @@
       const kb_input_content_submit = docById('kb_input_content_submit');
       dlg_kb_input.returnValue = "kb_input_content";
 
+
+      /*
       const dlg_persona_input = docById('dlg_persona_input');
       const persona_input_content = docById('persona_input_content');
       const persona_input_content_cancel = docById('persona_input_content_cancel');
       const persona_input_content_submit = docById('persona_input_content_submit');
       dlg_persona_input.returnValue = "persona_input_content";
+      */
 
-      //iftb_oai_key.value = my_oaiKey??"";
+      const dlg_lbl_edit_dialog_ta_user = document.getElementById('dlg_lbl_edit_dialog_ta_user');
+      const dlg_edit_dialog_ta_user = document.getElementById('dlg_edit_dialog_ta_user');
+      const dlg_lbl_edit_dialog_ta_persona = document.getElementById('dlg_lbl_edit_dialog_ta_persona');
+      const dlg_edit_dialog_ta_persona = document.getElementById('dlg_edit_dialog_ta_persona');
+
       
 
       kb_input_content_submit.addEventListener("click", () => {
@@ -942,6 +992,7 @@
         dlg_kb_input.close("");
       });
 
+      /*
       persona_input_content_submit.addEventListener("click", () => {
         //kbAddItem(kb_input_content.value,false);
 
@@ -959,6 +1010,8 @@
       persona_input_content_cancel.addEventListener("click", () => {
         dlg_persona_input.close("");
       });
+      */
+
 
       let file_import_pdf = docById('file_import_pdf');
       file_import_pdf.addEventListener('change', kbImportPDF);

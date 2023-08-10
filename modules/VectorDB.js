@@ -308,6 +308,11 @@ export class VectorDB {
     }
 
 
+    async GetItem(dataType=VectorDB.DATA_TYPE_KB, itemId="item guid")
+    {
+        const userKnowledgeBaseObj = await this.LoadKnowledgeBaseFile(dataType);
+        return userKnowledgeBaseObj.textChunks.filter(x=>x.id==itemId);
+    }
 
 
     async GetLatest(dataType=VectorDB.DATA_TYPE_KB, maxResult = 10)

@@ -59,6 +59,19 @@ export class ConversationDB
         return dialogs;
     }
 
+    async GetDialog(id="dialog GUID")
+    {
+        const vdbItems = await this.vdb.GetItem(VectorDB.DATA_TYPE_CONVO,id);
+        //console.log(vdbItems)
+        if(vdbItems.length>0)
+        {
+            const dlgs = await this.ConvertVDBItemsToDialogs(vdbItems);
+            //console.log(dlgs)
+            return dlgs[0] ;
+        }
+
+        return null;
+    }
     async ConvertVDBItemsToDialogs(vdbItems=[])
     {
         var dialogs = [];
