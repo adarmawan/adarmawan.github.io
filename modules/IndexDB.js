@@ -93,3 +93,16 @@ export async function GetIDBObject(dataType="") {
     };
     });
 }
+
+
+export async function DeleteIDB(){
+    try {
+        let deleteRequest = indexedDB.deleteDatabase(IDB_NAME);
+        deleteRequest.onsuccess = function(event) {
+        console.log("Database deleted successfully");
+        };    
+    } catch (error) {
+        
+    }
+    
+}

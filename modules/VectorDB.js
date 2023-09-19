@@ -81,12 +81,7 @@ export class VectorDB {
 
         return chunks.concat(subChunks);
     }
-
-
-    SetOpenAIApiKey(oaiKey="OpenAI API Key") {
-        this.oaiKey = oaiKey;
-    }
-
+    
     async GetSentenceVectors(sentence="")
     {
         const vectors = (await oai.call_oai_embedding(sentence, this.oaiKey))[0].embedding;
@@ -294,8 +289,8 @@ export class VectorDB {
 
 
             const simTestTop = simTest.slice(0, maxResult); //Start Index-0
-            //const debugArray = simTestTop.map(item => ({ id: item.id, val: item.val }));
-            const debugArray = simTestTop.map(item => [item.id, item.val]);
+            const debugArray = simTestTop.map(item => ({ id: item.id, val: item.val }));
+            //const debugArray = simTestTop.map(item => [item.id, item.val]);
             console.log(debugArray)
             return simTestTop
         }

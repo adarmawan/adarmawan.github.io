@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dewi Sofia</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link type="text/css" rel="stylesheet" href="standard.css"/>
+  <style>
+    
+    #div_persona_brain_container{
+      height:50%;overflow-x:clip;overflow-y:scroll;padding: 0.5em;
+    }
+
+    #div_user_documents{
+      background-color:white;
+      overflow: scroll;
+      height: 90%;
+      padding: 0.5em;
+    }
+
+    .modal_dialog{
+      color: antiquewhite;
+      background-color: #000000cf;
+      overflow:hidden;
+      border-radius: 0.5rem;
+      width: 100vw;
+    }
+
+    .disabled {
+      pointer-events: none !important;
+      opacity: 0.5 !important;
+    }
+   
+
+    .form-control{
+      padding: 0.1em;
+    }
+    .col-form-label {
+      padding-top: 0em;
+      padding-bottom: 0em;
+    }
+
+    button, textarea, input {
+    border-radius: 0.1rem !important;
+    }
+    textarea, input {
+    border-radius: 0.1rem !important;
+    _text-align: center;
+    border: none;
+    border-bottom: 1px solid;
+    }
+
+    .messages {
+      height: 90vh;
+      width: 100%;
+      overflow-y:scroll;
+  }
+
+    .message {
+      background-color: #2e2d2d61;
+      color: antiquewhite;
+      
+      border-width: 2px;
+      border-radius: 5px;
+      border-color: antiquewhite;
+      border-style: solid;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    .message::after {
+    content: "";
+    clear: both;
+    display: table;
+    }
+    .message-dark {
+      _border-color: #ccc;
+      _background-color: #ddd;
+    }
+
+    .fab{
+      background-color: transparent;
+      border-radius: 50%!important;
+      border-width: 0px;
+      color: khaki;
+      padding: 0px;
+    }
+    .fab-text{
+      font-size: 1rem;
+      color: aliceblue;
+      margin-top: 1rem;
+      margin-left: 0.5rem;
+      display: block;
+    }
+    .fab-help-close {
+      float:right;
+      font-size: 2.5rem;
+    }
+    .fab-add-person-detail {
+     
+    }
+
+
+    #container_chat
+    {
+      width: 100vw;
+      height: 100vh;
+      display: table;
+      clear: both;
+    }
+
+    #div_help{
+      float: left;
+      background-color: #2e2d2d61;
+      color: antiquewhite;
+      height: 100%;
+      width: 35%; 
+      padding: 2%;
+    }
+
+    #div_persona_chat{
+      float: left;
+
+      flex: 1;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			_justify-content: center;
+			padding: 10px;
+      height: 90%;
+      width: 30%;
+
+      _background-color: #c1bebe;
+      _background-blend-mode: multiply;
+      background-image: url("assets/witch-02.jpg");
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    #div_chat_menu_bar{
+      _width: 3rem;
+      position: fixed;
+      top: 0em;
+      right: 0em;
+      _z-index: 10000;
+      font-size: 2.5rem;
+    }
+
+    @media (max-width: 768px) {
+      #div_help{
+        display:none;
+        width:0px;  
+      }
+      #div_persona_chat{
+        height: 90vh;
+        width: 100vw;  
+      }
+
+      #message_input{
+        position: fixed;
+        bottom: 2vh;
+        right: 0em;
+      }
+
+      .fab-text{
+        display: none;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .modal_dialog{
+        width:29vw;
+        margin-left:auto;
+        margin-right:auto;
+        }
+
+      #div_chat_menu_bar{
+        right:20vw;
+      }
+      .fab-add-person-detail {
+
+      }
+      .fab-help{
+        display: none;
+        visibility: collapse;
+      }
+      .fab-help-close {
+        display: none;
+        visibility: collapse;
+      }
+    }
+
+    /*
+    @media (min-width: 1024px) {
+      #container_chat{
+        _width:30vw;
+        margin-left:auto;
+        margin-right:auto;
+      }
+      .modal_dialog{
+        width:29vw;
+        margin-left:auto;
+        margin-right:auto;
+        }
+      .fab-add-person-detail {
+        left: 26vw;
+      }
+    }
+    */
+
+  </style>
+</head>
+<body>
+  <!-- pop-up dialog box, information -->
+  <dialog id="dlg_info">
+    <h1 id="dlg_info_title"> Importing Large Text </h1>
+  </dialog>
+
+  <dialog id="dlg_kb_input">
+    <form method="dialog" style="width: 80vw;">
+      
+        <label for="kb_input_title">KB Title</label>
+        <input type="text" id="kb_input_title" name="kb_input_title" style="width:80vw;">
+
+        <label for="kb_input_content">KB Content</label>
+        <textarea type="text" id="kb_input_content" name="kb_input_content" rows="5" style="width:80vw;">
+        </textarea>
+      
+
+        <div>
+          <label for="file_import_pdf" class="button-label">Import PDF</label>
+          <input type="file" id="file_import_pdf" accept=".pdf" style="display: none;">
+          <label for="kb_input_textchunker_chunkSize">Chunk Size</label>
+          <input type="number" id="kb_input_textchunker_chunkSize" style="width:5vw" value="200">
+          <label for="kb_input_textchunker_chunkOverlap">Overlap Size</label>
+          <input type="number" id="kb_input_textchunker_chunkOverlap" style="width:5vw" value="5">
+          <label for="kb_input_isGiantText">Large Text</label>
+          <input type="checkbox" id="kb_input_isGiantText">
+        </div>
+        
+
+      <div class="mt-2">
+        <button id="kb_input_content_cancel" type="reset" onclick="dlg_kb_input.close('')">Cancel</button>
+        <button id="kb_input_content_submit" type="submit" onclick="kbAddItem()">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg_edit_dialog">
+    <form method="dialog" style="width: 50vw;">
+
+      <label id="dlg_lbl_edit_dialog_ta_user" for="dlg_edit_dialog_ta_user">ta_user</label>      
+      <textarea type="text" id="dlg_edit_dialog_ta_user" rows="5" style="width:50vw;"></textarea>
+
+      <label id="dlg_lbl_edit_dialog_ta_persona" for="dlg_edit_dialog_ta_persona">ta_persona</label>
+      <textarea type="text" id="dlg_edit_dialog_ta_persona" rows="5" style="width:50vw;"></textarea>
+
+      <div>
+        <button id="dlg_edit_dialog_btn_cancel" type="reset" onclick="dlg_edit_dialog.close('CANCEL')">Cancel</button>
+        <button id="dlg_edit_dialog_btn_submit" type="submit" onclick="dlgEditDialogSubmit()">Submit</button>
+      </div>
+    </form>
+  </dialog>
+
+ 
+  <dialog id="dlg_get_person_data" class="modal_dialog">
+    <form method="dialog">
+      <h4 class="mx-auto" id="dlg_header_get_person_data">Data Pribadi</h4>
+
+      <h6 class="mt-3">
+        <label id="dlg_lbl_get_person_data_tb_fullName" for="dlg_get_person_data_tb_fullName">Nama Lengkap</label>
+      </h6>
+      <input type="text" id="dlg_get_person_data_tb_fullName" style="width:100%;" value="Arief">
+
+      <div id="div_dlg_get_person_data_tb_relation">
+        <h6 class="mt-3">
+          <label id="dlg_lbl_get_person_data_tb_relation" for="dlg_get_person_data_tb_relation">Hubungan Dengan Anda</label>
+        </h6>
+        <input type="text" id="dlg_get_person_data_tb_relation" style="width:100%;" value="Istri">
+      </div>
+      
+
+
+
+      <h6 class="mt-3">Hari Kelahiran</h6>
+      <div class="row mt-4">
+        <div class="col text-center">
+          <input type="number" id="dlg_get_person_data_tn_birthYear" min="1950" max="3000" value="1977">
+        </div>
+        <div class="col text-center">
+          <input type="number" id="dlg_get_person_data_tn_birthMonth" min="1" max="12" value="12">
+        </div>
+        <div class="col text-center">
+          <input type="number" id="dlg_get_person_data_tn_birthDate" min="1" max="31" value="31">
+        </div>
+      </div>
+
+
+      
+      <div class="row mt-4">
+        <div class="col">
+          <button style="width: 100%" id="dlg_get_person_data_btn_cancel" type="button">Cancel</button>        
+        </div>
+        <div class="col">
+          <button style="width: 100%" id="dlg_get_person_data_btn_submit" type="button" >Submit</button> 
+        </div> 
+      </div>
+        
+        
+      </div>
+    </form>
+  </dialog>
+  
+  <div id="container_setup" style="display:none;">
+    <div class="header hstack gap-3">
+      <label for="opt_llm" style_="padding:0em;">LLM</label>
+      <select id="opt_llm">
+        <option value="CGPT">OAI ChatGPT-3.5-turbo</option>
+        <option value="LL2">LLC LLama2-Chat</option>
+      </select>
+    </div>
+    <div class="header hstack gap-3">
+        <label>Data</label>
+        <label for="file_import_json" class="button-label">Import</label>
+        <input type="file" id="file_import_json" accept=".json" style="display: none;">          
+        <label class="button-label" onclick="exportJSONData()">Export</label>
+    </div>
+
+    <div id="div_persona_brain_container">
+    </div>
+
+    <div class="float-end mt-2">
+      <button class="btn btn-sm btn-primary" id="btn_default_persona_brain">Default</button>
+      <button class="btn btn-sm btn-primary" id="btn_save_persona_brain">Save</button>
+      <button class="btn btn-sm btn-primary" id="btn_export_persona_brain">Export</button>
+    </div>
+  </div>
+
+  <div id="container_kb"  style="display:none;">
+    <div id="div_user_documents">
+    </div>
+    <div class="mt-2" style="color:white">
+      <button class="btn btn-sm btn-primary" id="btn_user_kb_add">Add</button>
+      <button class="btn btn-sm btn-primary" id="btn_user_kb_get">Export</button>
+    </div>
+  </div>
+
+
+
+  
+
+  <div id="container_chat">
+    <div id="div_help">
+      <div style="width:100%;height:1.5rem;">
+        <button id="btn_help_close" class="fab fab-help-close">
+          <i class="bi bi-x-circle"></i>
+        </button>
+      </div>
+      
+      <h3 style="text-align: center;">Selamat Datang</h3>
+      <div id="div_help_greetings" style="text-align: center;"></div>
+      
+    </div>
+  
+    <div id="div_persona_chat" class="_vstack">
+      <div id="div_chat_menu_bar">
+        <button id="btn_help_open" class="fab fab-help">
+          <i class="bi bi-question-circle"></i>
+        </button>
+
+        <div class="hstack">
+          <button id="btn_data_pasangan" class="fab fab-add-person-detail">
+            <i class="bi bi-person-circle"></i>
+          </button>
+          <p class="fab-text">Input Data Orang Lain</p>
+        </div>
+
+        <!--
+
+          <button id="btn_data_pasangan" class="fab fab-add-person-detail">
+          <i class="bi bi-person-circle"></i>
+        </button>
+
+        
+          <div class="hstack">
+          <button id="btn_data_pasangan" class="fab fab-add-person-detail">
+            <i class="bi bi-person-circle"></i>
+          </button>
+          <p style="font-size: 1rem;">Input Data Orang Lain</p>
+        </div>
+        -->
+        
+        
+      </div>
+
+      <div id="messages" class="messages">
+      </div>
+      
+      <div id="message_input" class="w-100 mx-auto">
+        <div class="hstack gap-2 mt-2 mx-2" class_="user-input mt-2">
+          <textarea id="message-input" type="text" rows="2" class="form-control input-text"></textarea>
+          <button id="message-send" class="btn btn-sm btn-primary" >Send</button>
+        </div>
+      </div>
+
+    </div>
+
+    
+
+    
+    
+
+  </div>
+
+    
+  
+
+  <!-- JS INCLUDES -->
+  <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+  <script type="module" src="js/tool-2-sofia/index.js"></script>  
+
+  
+  
+</body>
+</html>

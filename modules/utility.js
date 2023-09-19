@@ -5,6 +5,13 @@ const RexSearchNewLines = new RegExp(/(\r\n|\n|\r)/gm)
 const RexSearchAlphaNumeric = new RegExp(/[^a-zA-Z0-9\s]/g)
 const RexSearchAlphaNumericAndComa = new RegExp(/[^a-zA-Z0-9 ,]/g)
 const RexSearchDateTimeISO =  new RegExp(/DateTime: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g);
+const RexSearchNumberingSuffix = new RegExp(/^\d+\.\s*/gm);
+
+
+export function CleanNumberingSuffix(text="")
+{
+  return text.replaceAll(RexSearchNumberingSuffix, ""); //remove "321." from string "321. aaa bbb ccc"
+}
 
 
 export function CleanDateTimeISO(text="")
@@ -108,3 +115,53 @@ export function saveAsFile(filename, data, document) {
   link.href = window.URL.createObjectURL(blob);
   link.click()
 };
+
+
+export function isBase64(str) {
+  try {
+    return btoa(atob(str)) == str;
+  } catch (err) {
+    return false;
+  }
+}
+
+export function isValidBase64(str) {
+  return /^[A-Za-z0-9+/]*[=]{0,2}$/.test(str);
+}
+
+export function testBase64(str) {
+  if (isBase64(str)) {
+    console.log(str + " is base64 encoded");
+  } else if (isValidBase64(str)) {
+    console.log(str + " is valid base64 but not encoded");
+  } else {
+    console.log(str + " is not base64 encoded");
+  }
+}
+
+
+function XorString(str, key) {
+  const strArr = Array.from(str);
+  const keyArr = Array.from(key);
+  let result = "";
+  for (let i = 0; i < strArr.length; i++) {
+    const xorValue = strArr[i].charCodeAt(0) ^ keyArr[i % keyArr.length].charCodeAt(0);
+    result += String.fromCharCode(xorValue);
+  }
+  return result;
+}
+
+export function EncX(s, k) {
+  let x1 = XorString(s,k)
+  console.log(x1)
+  let x2 = btoa(x1)
+  console.log(x2)
+  return x2
+}
+export function DecX(s, k) {
+  let x1 = atob(s)
+  console.log(x1)
+  let x2 = XorString(x1, k);
+  console.log(x2)
+  return x2
+}

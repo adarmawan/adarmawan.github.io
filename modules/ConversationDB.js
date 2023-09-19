@@ -8,7 +8,7 @@ export class ConversationDB
     constructor(oaiKey="OpenAI API Key")
     {
         this.oaiKey = oaiKey;
-        this.vdb = new VectorDB();
+        this.vdb = new VectorDB(oaiKey);
     }
     
     SetOpenAIApiKey(oaiKey="OpenAI API Key") {
