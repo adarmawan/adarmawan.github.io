@@ -116,15 +116,16 @@ export class ConversationDB
         recentDialogToInclude=0,
         userKBToInclude=[""], agenKBToInclude=[""], 
         maxUserKBTokens=500, maxAgentKBTokens=500, maxUserConvoTokens=500,
-        minUserKBSimilarity=0.8,minAgentKBSimilarity=0.9,minConvoSimilarity=0.8
-        )
+        minUserKBSimilarity=0.8,minAgentKBSimilarity=0.9,minConvoSimilarity=0.8,
+        languageTokenMultiplier=1.3)//En=1.3, Id=3.3
     {
         
         const LLMPromptTemplate=
         [
             {
                 "name": "CGPT",
-                "template": "_LABLE_USER_KB_\n_RELEVANT_USER_KB_\n_LABLE_PAST_USER_CONVO_\n_RELEVANT_PAST_USER_CONVO_\n_LABLE_INSTRUCTION_\n_PERSONA_INFO__PERSONA_CONTEXT__CURRENT_DATETIME_\n_LAST_USER_CONVO_",
+                //"template": "_LABLE_USER_KB_\n_RELEVANT_USER_KB_\n_LABLE_PAST_USER_CONVO_\n_RELEVANT_PAST_USER_CONVO_\n_LABLE_INSTRUCTION_\n_PERSONA_INFO__PERSONA_CONTEXT__CURRENT_DATETIME_\n_LAST_USER_CONVO_",
+                "template": "_LABLE_USER_KB_\n_RELEVANT_USER_KB_\n_LABLE_PAST_USER_CONVO_\n_RELEVANT_PAST_USER_CONVO_\n_LABLE_INSTRUCTION_\n_PERSONA_INFO__PERSONA_CONTEXT_\n_LAST_USER_CONVO_",
                 "switches": {dialog_include_timestamp:true}
             },
             {
@@ -146,13 +147,19 @@ export class ConversationDB
         var _LABLE_USER_KB_ = "===KNOWLEDGEBASE";
         var _LABLE_PAST_USER_CONVO_ = "===PAST CONVERSATIONS";
         var _LABLE_INSTRUCTION_ = "===INSTRUCTION";
-        const userMsgVectors = await this.vdb.GetSentenceVectors(userMessage);
+        let userSearchMsg = userMessage;
+        if(userSearchMsg.startsWith(`${brainObj.user_name}:`) )
+        {
+            userSearchMsg = userMessage.replace(`${brainObj.user_name}:`,'');
+        }
+        const userMsgVectors = await this.vdb.GetSentenceVectors(userSearchMsg);
 
         var userKBContext = "";
         if(maxUserKBTokens>0)
         {
-            //console.log(`${pathUserKnowledgeBase}--${userMessage}--${maxUserKBTokens}--${minUserKBSimilarity}`)
-            searchUserKb = await this.vdb.Search(VectorDB.DATA_TYPE_KB, userMsgVectors,userMessage,userKBToInclude,[""],minUserKBSimilarity,10);
+            
+            console.log(`userKBSearch: ${userSearchMsg}--${maxUserKBTokens}--${minUserKBSimilarity}`)
+            searchUserKb = await this.vdb.Search(VectorDB.DATA_TYPE_KB, userMsgVectors,userSearchMsg,userKBToInclude,[""],minUserKBSimilarity,10);
 
 
             if(searchUserKb!=null)
@@ -161,7 +168,7 @@ export class ConversationDB
                     const d_dt = util.GetDateFromTimeStamp(d.timestamp);
                     //userKBContext += `DateTime:${d_dt}\n${d.text}\n\n`;
                     userKBContext += `${d.text}\n`;
-                    if(util.GetTokenCount(userKBContext)>=maxUserKBTokens) break;
+                    if(util.GetTokenCount(userKBContext,languageTokenMultiplier)>=maxUserKBTokens) break;
                 }
             }
             
@@ -183,10 +190,11 @@ export class ConversationDB
                 }
             }
         }
+
         if(maxUserConvoTokens>0) 
         {
-            //console.log(`${pathUserKnowledgeBase}--${userMessage}--${minUserKBSimilarity}`)
-            searchUserConvo = await this.vdb.Search(VectorDB.DATA_TYPE_CONVO, userMsgVectors, userMessage, userKBToInclude, [""], minUserKBSimilarity, 10);
+            console.log(`userConvoSearch: ${userSearchMsg}--${maxUserConvoTokens}--${minConvoSimilarity}`)
+            searchUserConvo = await this.vdb.Search(VectorDB.DATA_TYPE_CONVO, userMsgVectors, userSearchMsg, userKBToInclude, [""], minConvoSimilarity, 10);
             if (searchUserConvo != null) {
                 let converted = await this.ConvertVDBItemsToDialogs(searchUserConvo);
                 for (const d of converted) {
@@ -205,9 +213,14 @@ export class ConversationDB
         {
             const d_dt = util.GetDateFromTimeStamp(d[0]);
             if(p_q_o[0].switches.dialog_include_timestamp)
-                userConvoContext += `DateTime:${d_dt}\n${d[1]}\n${d[2]}\n\n`; //LLama2 gak bisa begini
+                {
+                    userConvoContext += `DateTime:${d_dt}\n${d[1]}\n${d[2]}\n\n`; //LLama2 gak bisa begini
+                    if(util.GetTokenCount(userConvoContext,languageTokenMultiplier)>=maxUserConvoTokens) break;
+                }
             else
-                userConvoContext += `${d[1]}\n${d[2]}\n\n`;
+                {
+                    userConvoContext += `${d[1]}\n${d[2]}\n\n`;
+                }
         }
 
 
@@ -227,9 +240,10 @@ export class ConversationDB
                         .replace("_LABLE_INSTRUCTION_", _LABLE_INSTRUCTION_)
                         .replace("_PERSONA_INFO_", brainObj.persona_info)
                         .replace("_PERSONA_CONTEXT_", brainObj.persona_context)
-                        .replace("_CURRENT_DATETIME_", currentDateTime)
+                        //.replace("_CURRENT_DATETIME_", currentDateTime)
                         .replace("_LAST_USER_CONVO_", lastDialogs)
 
+        console.log("p_ctx_tc: " + util.GetTokenCount(p_queryContext,languageTokenMultiplier));
         return p_queryContext;
     }
 

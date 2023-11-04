@@ -80,7 +80,7 @@ export async function call_oai_completion(p_system, p_final="", oaiKey="", tempe
     }
     
 }
-export async function call_oai_completion_stream(p_system, p_final="", oaiKey="", aiAnswerTextArea=null, temperature=1,max_tokens=1024)
+export async function call_oai_completion_stream(p_system, p_final="", oaiKey="", aiAnswerTextArea=null, temperature=1,max_tokens=1024, aiModel="gpt-3.5-turbo")
 {
 
     if(oaiKey=="")
@@ -93,7 +93,7 @@ export async function call_oai_completion_stream(p_system, p_final="", oaiKey=""
     try 
     {
     const oaiPayload={
-        model: "gpt-3.5-turbo",
+        model: aiModel,
         temperature: temperature,
         max_tokens: max_tokens,
         stream: true,
@@ -140,10 +140,14 @@ export async function call_oai_completion_stream(p_system, p_final="", oaiKey=""
                     let jObj = JSON.parse(c.replace("data: ",""));
                     if(jObj.choices[0].finish_reason==null)
                     {
-                        if(aiAnswerTextArea.nodeName=="P")
-                            aiAnswerTextArea.textContent += jObj.choices[0].delta.content;
-                        else
-                            aiAnswerTextArea.value += jObj.choices[0].delta.content;
+                        if(aiAnswerTextArea!=null)
+                        {
+                            if(aiAnswerTextArea.nodeName=="P")
+                                aiAnswerTextArea.textContent += jObj.choices[0].delta.content;
+                            else
+                                aiAnswerTextArea.value += jObj.choices[0].delta.content;
+                        }
+                        
 
                         rspMsg += jObj.choices[0].delta.content;
                     }

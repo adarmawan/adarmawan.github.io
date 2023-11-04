@@ -240,7 +240,70 @@ export class VectorDB {
     }
 
 
-    async Search(dataType=VectorDB.DATA_TYPE_KB, userMsgVectors=[], userInput = "", docTitles = [""], keyConcepts = [""], minSimilarityValue = 0.2, maxResult = 10) {
+    async SearchMemory(dataType=VectorDB.DATA_TYPE_KB, kb_object={}, userMsgVectors=[], userInput = "", docTitles = [""], keyConcepts = [""], minSimilarityValue = 0.2, maxResult = 10)
+    {
+        try {
+            var userKnowledgeBaseObj = kb_object
+            
+            const vTest = userMsgVectors;
+            var simTest = []
+
+            var finalKB = this.NewKnowledgeBaseObject(dataType)
+            finalKB.references = []
+            finalKB.textChunks = []
+
+            if (docTitles[0] != "") {
+                finalKB.textChunks = userKnowledgeBaseObj.textChunks.filter(x => docTitles.includes(x.title))
+            }
+            else {
+                finalKB.textChunks = userKnowledgeBaseObj.textChunks.slice()
+            }
+
+            
+            for (var tc of finalKB.textChunks)
+            {
+                try
+                {
+                    const val = math.SimilarityVector(vTest, tc.vectors)
+                    var resObj =
+                    {
+                        timestamp: tc.timestamp,
+                        id: tc.id,
+                        title: tc.title,
+                        keyConcepts: tc.keyConcepts,
+                        text: tc.text,
+                        fullText: tc.fullText,
+                        val: val
+                    }
+
+                    if (val >= minSimilarityValue)
+                        simTest.push(resObj)
+
+                }catch{} //handle invalid entries caused by vector errors
+            }
+            //SORT HIGH similarity first
+            simTest.sort(function (a, b) {
+                return b.val - a.val;
+            });
+
+
+            const simTestTop = simTest.slice(0, maxResult); //Start Index-0
+            const debugArray = simTestTop.map(item => ({ id: item.id, val: item.val }));
+            //const debugArray = simTestTop.map(item => [item.id, item.val]);
+            console.log(debugArray)
+            return simTestTop
+        }
+        catch (err) {
+            console.log(`[ VDB ERROR ]\nJSON_OBJ\n${userInput}\n${docTitles}`)
+            console.log(userKnowledgeBaseObj)
+            console.log(err)
+            return [];
+        }
+    }
+
+
+    async Search(dataType=VectorDB.DATA_TYPE_KB, userMsgVectors=[], userInput = "", docTitles = [""], keyConcepts = [""], minSimilarityValue = 0.2, maxResult = 10) 
+    {
         //console.log(docTitles)
         //console.log(keyConcepts)
 
@@ -325,8 +388,9 @@ export class VectorDB {
 
     async DeleteTitle(dataType=VectorDB.DATA_TYPE_KB, docTitle = "") {
         var userKnowledgeBaseObj = await this.LoadKnowledgeBaseFile(dataType);
-        userKnowledgeBaseObj.textChunks = userKnowledgeBaseObj.textChunks.filter(x=>x.title!=docTitle)
-        userKnowledgeBaseObj.references = userKnowledgeBaseObj.references.filter(x=>x!=docTitle)
+        docTitle = docTitle.toLowerCase();
+        userKnowledgeBaseObj.textChunks = userKnowledgeBaseObj.textChunks.filter(x=>x.title.toLowerCase()!=docTitle)
+        userKnowledgeBaseObj.references = userKnowledgeBaseObj.references.filter(x=>x.toLowerCase()!=docTitle)
         await this._saveVDBObject(userKnowledgeBaseObj);
     }
 

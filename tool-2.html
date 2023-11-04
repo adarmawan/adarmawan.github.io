@@ -60,6 +60,7 @@
   <dialog id="dlg_info">
     <h1 id="dlg_info_title"> Importing Large Text </h1>
   </dialog>
+
   <dialog id="dlg_kb_input">
     <form method="dialog" style="width: 80vw;">
       
@@ -84,21 +85,8 @@
         
 
       <div class="mt-2">
-        <button id="kb_input_content_cancel" type="reset">Cancel</button>
-        <button id="kb_input_content_submit" type="submit">Submit</button>
-      </div>
-    </form>
-  </dialog>
-  <dialog id="dlg_persona_input">
-    <form method="dialog" style="width: 50vw;">
-      
-        <label for="persona_input_content">Persona Brain JSON</label>
-        <textarea type="text" id="persona_input_content" name="persona_input_content" rows="20" style="width:50vw;">
-        </textarea>
-      
-      <div>
-        <button id="persona_input_content_cancel" type="reset">Cancel</button>
-        <button id="persona_input_content_submit" type="submit">Submit</button>
+        <button id="kb_input_content_cancel" type="reset" onclick="dlg_kb_input.close('')">Cancel</button>
+        <button id="kb_input_content_submit" type="submit" onclick="kbAddItem()">Submit</button>
       </div>
     </form>
   </dialog>
@@ -152,7 +140,7 @@
       "chunk_overlap": 5,
   };
   
-  const persona ={
+  var persona ={
       "dataType": "persona",
       "persona_info": "My name is Lisa, or \"Liz\" for short. I am a joyful and helpful female companion. I will describe my feelings, thoughts and action very descriptively in my answers.",
       "persona_context": " I will use my KNOWLEDGEBASE and PAST CONVERSATIONS to answer every questions. If I can't find the answer, I will simply say \"Sorry, I don't have the answer for that.",
@@ -248,6 +236,7 @@
       }
 
     }
+    
     function renderJSONInputForm(divContainerId="", formName="",dataObject={})
     {
       // Get the container element to hold the form
@@ -340,6 +329,7 @@
       if(u_p!=null)
       {
         renderJSONInputForm("div_persona_brain_container", "persona_brain", u_p);
+        persona = u_p
         //console.log(getJSONInputFormData("persona_brain"));
       }
       else
@@ -390,10 +380,6 @@
 								   .replaceAll("\"","")
 								   .replaceAll(`${docById('user_name').value}:`,"")
 								   .replaceAll(`${docById('persona_name').value}:`,"")
-								   .replaceAll(`U:`,"")
-								   .replaceAll(`B:`,"")
-								   .replaceAll(".*","*")
-								   //.replaceAll(".",".<br>")
 								   .replaceAll("\n","<br>");
 			
 			let msg = 
@@ -403,9 +389,9 @@
 			_BUTTONS_
 			</div>`
 
-			let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>
-			<button id="btnSpeak__BOT_RSP_ID_" onclick="speak('_BOT_RSP_ID_')">?</button>
-      <button id="btnEdit__BOT_RSP_ID_" onclick="msgEdit('_DIALOG_ID_')">=</button>`
+			let buttons =`<button id="btnDelete__BOT_RSP_ID_" title="Delete" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>
+			<button id="btnSpeak__BOT_RSP_ID_" title="Speak" onclick="speak('_BOT_RSP_ID_')">?</button>
+      <button id="btnEdit__BOT_RSP_ID_" title="Edit" onclick="msgEdit('_DIALOG_ID_')">=</button>`
       
 			msg = msg.replace("_MSG_TEXT_", msgText)
 			if(message.from === 'me')
@@ -423,79 +409,6 @@
 				msg = msg.replaceAll("_BUTTONS_", buttons)
 				msg = msg.replace("_MSG_CLASS_", `message`)
 				msg = msg.replace("_TIMESTAMP_", util.GetLocalDateFromTimeStamp(message.timestamp))
-				msg = msg.replace("_TIME_CLASS_", `time-right`)
-				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
-			}
-			
-			const messagesDiv = document.getElementById('messages');
-			//const messageDiv = document.createElement('div');
-			messagesDiv.innerHTML += msg;
-			scrollMessageToBottom();
-
-      return rspMsgId;
-		};
-
-
-    function render_msg___(data)
-		{
-			var message = JSON.parse(data);
-			message.timestamp = util.GetLocalDateFromTimeStamp(message.timestamp);
-			const rspMsgId = util.GetTimeStamp();
-      
-			const msgText = message.text
-								   .replaceAll("\"","")
-								   .replaceAll(`${docById('user_name').value}:`,"")
-								   .replaceAll(`${docById('persona_name').value}:`,"")
-								   .replaceAll(`U:`,"")
-								   .replaceAll(`B:`,"")
-								   .replaceAll(".*","*")
-								   //.replaceAll(".",".<br>")
-								   .replaceAll("\n","<br>");
-			
-			let msg = 
-			`<div class="_MSG_CLASS_">
-        <p id="_BOT_RSP_ID_" style="__MSG_STYLE_">_MSG_TEXT_</p>
-        <span class="_TIME_CLASS_">_TIMESTAMP_</span>
-			  _BUTTONS_
-			</div>`;
-
-      let msg__ = 
-			`<div style_="width:100%;background-color:yellow;">
-        <div class="_MSG_CLASS_" style="_MSG_STYLE_">
-          <p id="_BOT_RSP_ID_">_MSG_TEXT_</p>
-          <span class="_TIME_CLASS_">_TIMESTAMP_</span>
-          _BUTTONS_
-        </div>
-      </div>
-      `
-
-			let buttons_ =`<button onclick="click_edit_dialog('_DIALOG_ID_')">=</button>
-			<button onclick="click_delete_dialog('_DIALOG_ID_')">-</button>`
-      let buttons =`<button id="btnDelete__BOT_RSP_ID_" onclick="click_delete_dialog('_DIALOG_ID_')">X</button>`
-			
-			msg = msg.replace("_MSG_TEXT_", msgText)
-			if(message.from === 'me')
-			{
-        msg = msg.replaceAll("_BUTTONS_", "")
-				
-        msg = msg.replace("_MSG_CLASS_", `message message-dark`)
-				msg = msg.replace("_MSG_STYLE_", `width:fit-content;float:right;`)
-        
-        msg = msg.replace("_TIMESTAMP_", message.timestamp)
-				msg = msg.replace("_TIME_CLASS_", `time-right`)
-        
-				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)
-			}
-			else
-			{
-        buttons = buttons.replaceAll("_BOT_RSP_ID_", rspMsgId)
-        msg = msg.replaceAll("_BOT_RSP_ID_", rspMsgId)
-				msg = msg.replaceAll("_BUTTONS_", buttons)
-				msg = msg.replace("_MSG_CLASS_", `message`)
-        msg = msg.replace("_MSG_STYLE_", `width:fit-content;float:left;`)
-
-
-				msg = msg.replace("_TIMESTAMP_", message.timestamp)
 				msg = msg.replace("_TIME_CLASS_", `time-right`)
 				msg = msg.replaceAll("_DIALOG_ID_", message.dialogId)	
 			}
@@ -966,52 +879,11 @@
       const kb_input_textchunker_chunkOverlap = docById('kb_input_textchunker_chunkOverlap');
       const kb_input_content_cancel = docById('kb_input_content_cancel');
       const kb_input_content_submit = docById('kb_input_content_submit');
-      dlg_kb_input.returnValue = "kb_input_content";
 
-
-      /*
-      const dlg_persona_input = docById('dlg_persona_input');
-      const persona_input_content = docById('persona_input_content');
-      const persona_input_content_cancel = docById('persona_input_content_cancel');
-      const persona_input_content_submit = docById('persona_input_content_submit');
-      dlg_persona_input.returnValue = "persona_input_content";
-      */
-
-      const dlg_lbl_edit_dialog_ta_user = document.getElementById('dlg_lbl_edit_dialog_ta_user');
-      const dlg_edit_dialog_ta_user = document.getElementById('dlg_edit_dialog_ta_user');
-      const dlg_lbl_edit_dialog_ta_persona = document.getElementById('dlg_lbl_edit_dialog_ta_persona');
-      const dlg_edit_dialog_ta_persona = document.getElementById('dlg_edit_dialog_ta_persona');
-
-      
-
-      kb_input_content_submit.addEventListener("click", () => {
-        kbAddItem();
-      });
-      
-      kb_input_content_cancel.addEventListener("click", () => {
-        dlg_kb_input.close("");
-      });
-
-      /*
-      persona_input_content_submit.addEventListener("click", () => {
-        //kbAddItem(kb_input_content.value,false);
-
-        try {
-          let persona = persona_input_content.value;
-          //console.log(persona);
-          renderJSONInputForm("div_persona_brain_container", "persona_brain", JSON.parse(persona));
-        } catch (error) {
-          alert("Invalid JSON Format");
-        }
-        
-        dlg_persona_input.close("");
-      });
-      
-      persona_input_content_cancel.addEventListener("click", () => {
-        dlg_persona_input.close("");
-      });
-      */
-
+      const dlg_lbl_edit_dialog_ta_user = docById('dlg_lbl_edit_dialog_ta_user');
+      const dlg_edit_dialog_ta_user = docById('dlg_edit_dialog_ta_user');
+      const dlg_lbl_edit_dialog_ta_persona = docById('dlg_lbl_edit_dialog_ta_persona');
+      const dlg_edit_dialog_ta_persona = docById('dlg_edit_dialog_ta_persona');
 
       let file_import_pdf = docById('file_import_pdf');
       file_import_pdf.addEventListener('change', kbImportPDF);
@@ -1028,11 +900,6 @@
         // Desktop browser
         console.log("Desktop browser detected");
       }
-
-      //listVoices();
-      //speak("Engine On!!")
-      //const voices = window.speechSynthesis.getVoices();
-      //console.log(voices);
     };
 
     // wait on voices to be loaded before fetching list

@@ -1,0 +1,707 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Essay Master</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  <link rel="preload" href="modules/winbox.bundle.min.js" as="script">
+  <link type="text/css" rel="stylesheet" href="standard.css"/>
+  <style>
+    body{
+      background-color: #000;
+    }
+    textarea {
+    resize: none;
+    }
+
+    .winbox.white{
+      background:#fff
+    }
+    .winbox.white .wb-title{
+      color:#000
+    }.winbox.white .wb-control{
+      filter:invert(1)
+    }
+
+    .winbox.dark{
+      background:#414040
+    }
+    .winbox.dark .wb-body {
+    /* set the width of window border via margin: */
+    margin: 4px;
+    color: #fff;
+    background: #131820;
+    }
+
+    .winbox.dark .wb-title{
+      color:#ebe7e7
+    }.winbox.dark .wb-control{
+      filter:invert(1)
+    }
+
+  </style>
+</head>
+<body>
+  <!-- JS INCLUDES -->
+  <script src__="modules/jquery-1.12.4.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+  <script src="modules/winbox.bundle.min.js" async></script>
+  
+  <!-- DATA -->
+  <script>
+
+    var book = {
+      places:[{timestamp:111,name:"Dystopian New York", content:"Description of 111"},{timestamp:222,name:"House 1",content: "Description of 222"}],
+      characters:[{timestamp:111,name:"Mina Harker",content:"Description of 111"}],
+      plotlines:[{timestamp:111,name:"Plotline 1",content:"Description of 111"}],
+      chapters:[{timestamp:111,name:"Chapter 1",content:"Description of 111"}],
+    }
+
+
+  </script>
+  <!-- My Stuff -->
+  <script src="keys.js"></script>
+  <script type="module">
+
+    import * as call_ai from "/modules/call_ai.js"
+    import * as idb from "/modules/IndexDB.js"
+    import * as util from '/modules/utility.js';
+    import * as math from '/modules/math.js';
+    import {VectorDB} from "/modules/VectorDB.js";
+    import {ConversationDB} from "/modules/ConversationDB.js";
+
+    idb.SetDBName("ynbt-lite-ai_essay_master");
+    idb.SetDBStores(["scratchpad","book"]);
+    window.call_ai = call_ai;
+    window.idb = idb;
+    window.util = util;
+    window.math = math;
+    window.VectorDB = new VectorDB();
+    window.ConversationDB = new ConversationDB();
+  </script>
+
+  <!-- FUNCTIONS -->
+  <script type_="module">
+    const docById = (id) => document.getElementById(id);
+    const docByClass = (className) => document.getElementsByClassName(className);
+    
+    function jsonGetScratchPad()
+    {
+      let objRoot = {};
+      
+      var inputs = document.querySelectorAll("input[type='text'],input[type='numeric'], textarea, select");
+      inputs.forEach(function (input) {
+          var key = input.id;
+          var value = input.value;
+          objRoot[key] = value;
+      });
+      
+      const keys = Object.keys(window["ynbt-ai_essay_master"]);
+      keys.forEach(key=>{
+        const val = window["ynbt-ai_essay_master"][key];
+        objRoot[key] = [val.x, val.y, val.width, val.height, val.min];
+
+      })
+    
+      console.log(objRoot);
+      return objRoot;
+    }
+    function jsonDataExport()
+    {
+      const objRoot = jsonGetScratchPad();
+      window.util.saveAsFile(`ynbt-ai_essay_master-${window.util.GetTimeStamp()}.json`, objRoot, document);
+    }
+    function jsonDataImport(e)
+    {
+      try 
+      {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = async (event) => {
+          const contents = event.target.result;
+          const data = JSON.parse(contents);
+          
+          const keys = Object.keys(data);
+          keys.forEach(k=>{
+            if(k.startsWith("wnd_"))
+            {
+              window["ynbt-ai_essay_master"][k].x = data[k][0];
+              window["ynbt-ai_essay_master"][k].y = data[k][1];
+              window["ynbt-ai_essay_master"][k].width = data[k][2];
+              window["ynbt-ai_essay_master"][k].height = data[k][3];
+              
+              const isMinimized = data[k][4]??false;
+              if(!isMinimized)
+              {
+                window["ynbt-ai_essay_master"][k].minimize(isMinimized);
+                window["ynbt-ai_essay_master"][k].resize().move();
+              }
+              
+            }
+            else
+            {
+              $(`#${k}`).val(data[k]);
+            }
+            
+          })
+        };
+
+        reader.readAsText(file);
+      } catch (error) {
+        alert(error)
+      }
+    }
+    
+    function wndMinimizeAll()
+    {
+      const keys = Object.keys(window["ynbt-ai_essay_master"]);
+      keys.forEach(key=>{
+        const wnd = window["ynbt-ai_essay_master"][key];
+        wnd.minimize(true);
+
+      })
+    }
+    function wndRestoreAll()
+    {
+      const keys = Object.keys(window["ynbt-ai_essay_master"]);
+      keys.forEach(key=>{
+        const wnd = window["ynbt-ai_essay_master"][key];
+        wnd.restore();
+
+      })
+    }
+
+    async function call_llm(rspMsgTextArea=null, p_cgpt="",p_ll2="")
+    {
+      console.log(p_cgpt);
+      const inf_temp = Number(document.getElementById("inf_temperature").value);
+      const inf_max_gen = Number(document.getElementById("inf_max_gen").value);
+      const aoi_key = document.getElementById("tb_oai_key").value;
+      const llmType = document.getElementById("opt_llm").value;
+      let rspFull = "";
+      if(llmType=="CGPT")
+      {
+        rspFull = await window.call_ai.call_oai_completion_stream("", p_cgpt, aoi_key, rspMsgTextArea, inf_temp, inf_max_gen)
+      }
+      else
+      {
+        rspFull = await window.call_ai.call_ll2_completion(p_ll2, [], rspMsgTextArea, inf_temp, inf_max_gen);
+      }
+
+      return rspFull;
+    }
+
+    function getBasePromptFactExtractor(textSource="")
+    {
+      let prompt=
+`[SOURCE TEXT]
+${textSource}
+
+[OUTPUT FORMAT]
+1. Fact 1.
+2. Fact_2.
+3. other facts.
+
+I am extracting important facts from [SOURCE TEXT],and writing them down like the [OUTPUT FORMAT].
+I will write only one fact per-line.
+I will write each fact in short sentence, and using the ${docById('opt_language').value} language:
+[FACT LIST]\n`
+
+      return prompt;
+    }
+    async function extractFacts()
+    {
+      docById('extract_facts_ta_result').value = "";
+      let prompt = getBasePromptFactExtractor(docById('extract_facts_ta_source').value);
+      await call_llm(extract_facts_ta_result, prompt,prompt);
+    }
+
+    async function continueFacts()
+    {
+
+    }
+
+
+    function getBasePromptEssayWrite(factList="")
+    {
+      let prompt_0=
+`[FACT LIST]
+${factList}
+
+
+I am an expert essay writer. I will write a comprehensive essay by ONLY using all fact from the [FACT LIST],
+and using the ${docById('opt_language').value} language:
+[COMPREHENSIVE ESSAY]\n`;
+
+let prompt_1=
+`[FACT LIST]
+${factList}
+
+
+I'm writing a short essay ONLY using the facts from the [FACT LIST],
+and using the ${docById('opt_language').value} language:
+[SHORT ESSAY]\n`;
+
+let prompt_2=
+`[FACT LIST]
+${factList}
+
+
+I'm writing a short essay ONLY using the facts from the [FACT LIST].
+I will not add anything new to this essay.
+I will write it using the ${docById('opt_language').value} language:
+[SHORT ESSAY]\n`;
+
+let prompt=
+`[FACT LIST]
+${factList}
+
+
+I will rewrite the [FACT LIST] into a short post.
+I will write it using the ${docById('opt_language').value} language:
+[SHORT POST]\n`;
+
+      return prompt;
+    }
+
+
+    async function writeEssay()
+    {
+      docById('write_essay_ta_result').value = "";
+      let prompt = getBasePromptEssayWrite(docById('write_essay_ta_source').value);
+
+      await call_llm(write_essay_ta_result, prompt,prompt);
+    }
+    async function continueEssay()
+    {
+      const basePrompt = getBasePromptEssayWrite(docById('write_essay_ta_source').value);
+      let prompt = `${basePrompt}${docById('write_essay_ta_result').value}`;
+      await call_llm(write_essay_ta_result, prompt,prompt);
+    }
+
+
+    function getBasePromptGradder(srcFactLst="", srcEssay="")
+    {
+      let prompt=`
+My name is "Essay Grader". I am an expert at scoring essays, and I will grade the STUDENT_ESSAY based on the inclusion of all items from the FACT_LIST. The essay will be scored on a scale of 1 to 10, with 10 being the maximum score. Please note that I will provide harsh gradings. I will give the GRADING_REPORT and COMMENTS accordingly.
+
+GRADING_STEPS:
+1. Read the FACT_LIST.
+2. Read the STUDENT_ESSAY.
+3. Identify any missing FACT_LIST items in the STUDENT_ESSAY.
+4. Deduct one point for each missing FACT.
+
+GRADING_REPORT:
+1. Incorporation of all FACTS: [Yes or No].
+2. Missing FACTS: [list of missing facts numbers].
+3. Final Score: [Provide the final score after considering all the GRADING_STEPS].
+
+COMMENTS:
+Feedback and comments on the STUDENT_ESSAY.
+
+FACT_LIST:
+${srcFactLst}
+
+STUDENT_ESSAY:
+${srcEssay}`;
+
+return prompt;
+    }
+    
+    function getPromptComparesFactLists(factList_1="",factList_2="")
+    {
+      let prompt=
+  `
+FACT_LIST_1:
+${factList_1}
+
+FACT_LIST_2:
+${factList_2}
+
+[MISSING FACT_LIST_1 ITEMS]
+Any items in FACT_LIST_1 thats missing in FACT_LIST_2 will be written here.
+
+I'm comparing the items in FACT_LIST_1 to the items in FACT_LIST_2.
+I understand that the items ordering and the wording might be different between items in FACT_LIST_1 and FACT_LIST_2, this is okay.`
+return prompt;
+    }
+    
+    async function gradeExtractFactsFromStudentEssay()
+    {
+      docById('grade_essay_ta_fact_student').value = "";
+      const p_fl2 = getBasePromptFactExtractor(docById('grade_essay_ta_essay_source').value);
+      const fl2 = await call_llm(docById('grade_essay_ta_fact_student'), p_fl2,p_fl2);
+    }
+
+    function getPromptIsStatementInEssay(e_s="", f_s_l="")
+    {
+      const p_1 = 
+`[STUDENT_ESSAY]
+${e_s}
+
+[STATEMENT_TO_SEARCH]
+${f_s_l}
+
+sample RESPONSE if [FACT_TO_SEARCH] exist in [STUDENT_ESSAY]:
+Fact Checked: YES
+Sentence: Write small part of the sentence in [STUDENT_ESSAY] containing [FACT_TO_SEARCH]
+
+sample RESPONSE if [FACT_TO_SEARCH] does not exist in [STUDENT_ESSAY]:
+Fact Checked: NO
+Sentence: -`;
+
+const p_2 = 
+`### Instruction:\n
+[ESSAY]: ${e_s}
+
+[STATEMENT]: ${f_s_l}
+
+Let's do this step-by-step.
+Search [STATEMENT] in [ESSAY].
+If the meaning of [STATEMENT] is fully written in [ESSAY], write YES.
+If the meaning of [STATEMENT] is partially written in [ESSAY], write MAYBE.
+If the meaning of [STATEMENT] is NOT in [ESSAY], write NO.
+### Response:\n`;
+
+const p_0 = 
+`### Instruction:\n
+[ESSAY]: ${e_s}
+
+[STATEMENT]: ${f_s_l}
+
+[TASK]
+Does the meaning of [STATEMENT] exist in [ESSAY]? Answer only with YES or NO.
+### Response:\n`;
+
+      return p_2;
+    }
+    
+    function getPromptSentenceContainingStatement(e_s="", f_s_l="")
+    {
+      const p_0=
+`### Instruction:\n
+[ESSAY]: ${e_s}
+
+[STATEMENT]: ${f_s_l}
+
+Write small part of the sentence in [ESSAY] containing [STATEMENT]
+### Response:\n`;
+      return p_0;
+    }
+    
+    async function gradingProcessType1()
+    {
+      docById('grade_essay_ta_result').value = "";
+      let f_s = docById('grade_essay_ta_fact_source').value.trim();
+      const f_s_l = window.util.CleanNumberingSuffix(f_s).split('\n');
+      console.log(f_s_l);
+
+      const e_s = docById('grade_essay_ta_essay_source').value;
+      for(let i=0;i<f_s_l.length;i++)
+      {
+        docById('grade_essay_ta_result').value += `\n\nFACT [${f_s_l[i]}]\nIn Essay:`
+
+        const p_checkStatement = getPromptIsStatementInEssay(e_s, f_s_l[i]);
+        const p_getStatementSentenceFromEssay = getPromptSentenceContainingStatement(e_s, f_s_l[i]);
+        
+        let isInEssay = await call_llm(docById('grade_essay_ta_result'), p_checkStatement, p_checkStatement);
+        isInEssay = isInEssay.toLocaleLowerCase();
+        if(isInEssay=="yes" || isInEssay=="maybe")
+        {
+          docById('grade_essay_ta_result').value +=`\nSentence: `;
+          const sentence = await call_llm(docById('grade_essay_ta_result'), p_getStatementSentenceFromEssay, p_getStatementSentenceFromEssay);
+          //docById('grade_essay_ta_result').value +=`\nSentence: ${sentence}`;
+        }
+        else
+        {
+          docById('grade_essay_ta_result').value +=`\nSentence:-`;
+        }
+      }
+    }
+    
+    async function gradingProcessType2()
+    {
+      //docById('grade_essay_ta_result').value = `[GRADING PROCESS TYPE 2]\n\n`;
+      docById('grade_essay_ta_result').value = '';
+
+      //Original FACT LIST
+      let f1 = docById('grade_essay_ta_fact_source').value.trim();
+      docById('grade_essay_ta_result').value += `[FACT_LIST_1]\n${f1}\n\n`;
+      const fl1 = window.util.CleanNumberingSuffix(f1).split('\n');
+      //console.log(fl1);
+
+      //STUDENT_ESSAY FACT LIST
+      docById('grade_essay_ta_result').value += `[FACT_LIST_2]\n`;
+      const p_fl2 = getBasePromptFactExtractor(docById('grade_essay_ta_essay_source').value);
+      const f2 = await call_llm(docById('grade_essay_ta_result'), p_fl2,p_fl2);
+      const fl2 = window.util.CleanNumberingSuffix(f2).split('\n');
+      //console.log(fl2);
+
+      const aoi_key = document.getElementById("tb_oai_key").value;
+      const fl1Vecs = await window.call_ai.call_oai_embedding(fl1,aoi_key);
+      console.log(fl1Vecs);
+      const fl2Vecs = await window.call_ai.call_oai_embedding(fl2,aoi_key);
+      console.log(fl2Vecs);
+
+      let fl1Obj = [];
+      let fl2Obj = [];
+      for (let index = 0; index < fl1.length; index++) {
+        let newObj = {};
+        newObj.s = fl1[index];
+        newObj.v = fl1Vecs[index].embedding;
+        newObj.fl2_s = 0;
+        newObj.fl2_d = 0.0;
+        fl1Obj.push(newObj);
+      }
+      for (let index = 0; index < fl2.length; index++) {
+        let newObj = {};
+        newObj.s = fl2[index];
+        newObj.v = fl2Vecs[index].embedding;
+        fl2Obj.push(newObj);
+      }
+
+      for (let fl1Item of fl1Obj) {
+        for (const fl2Item of fl2Obj) {
+          const fl2Dist = window.math.SimilarityVector(fl1Item.v, fl2Item.v);
+          if (fl1Item.fl2_d<=fl2Dist)
+          {
+            fl1Item.fl2_s = fl2Item.s;
+            fl1Item.fl2_d = fl2Dist;
+          }
+        }  
+      }
+
+      console.log(fl1Obj)
+
+
+      return;
+    }
+    async function gradeEssay()
+    {
+      const gradingProcessType = docById('opt_grading_type').value;
+
+      if(gradingProcessType=="gradingProcessType1")
+        await gradingProcessType1();
+
+      if(gradingProcessType=="gradingProcessType2")
+        await gradingProcessType2();
+
+      
+    }
+
+
+
+    async function gradeEssay__()
+    {
+      docById('grade_essay_ta_result').value = "";
+      //let prompt = getBasePromptGradder(docById('grade_essay_ta_fact_source').value, docById('grade_essay_ta_essay_source').value);
+      
+      
+      docById('grade_essay_ta_result').value = `[FACT_LIST_2]\n`;
+      const fl1 = docById('grade_essay_ta_fact_source').value;
+      const p_fl2 = getBasePromptFactExtractor(docById('grade_essay_ta_essay_source').value);
+      const fl2 = await call_llm(docById('grade_essay_ta_result'), p_fl2,p_fl2);
+      
+
+      docById('grade_essay_ta_result').value += `\n\n[MISSING FACTS LIST]\n`;
+      const p_missingFacts = getPromptComparesFactLists(fl1,fl2);
+      let missingFacts = await call_llm(docById('grade_essay_ta_result'), p_missingFacts,p_missingFacts);
+
+      //await call_llm(grade_essay_ta_result, prompt,prompt);
+    }
+
+  </script>
+
+
+  <!-- Layout -->
+  <script type="module">
+    const wnd_settings = new WinBox({
+    title: "Settings",
+    class: "dark no-max no-full no-close no-resize",
+    _x: "left",
+    _y: "top",
+    width: "10%",
+    height: "60%",
+    html: `
+        <div class="" style="padding:0.9em;">
+
+          <div class="row mb-3" style="color:white;">  
+            <label for="tb_oai_key" style="padding:0em;">OAI Key</label>
+            <input type="password" id="tb_oai_key" value="xxxx" style="">
+          </div>
+
+          <div class="row mb-3" style="color:white;">  
+            <label style="padding:0em;">Data</label>
+            <div style="padding-left:0!important;">
+              <label for="file_import_json" class="button-label">Import</label>
+              <input type="file" id="file_import_json" accept=".json" style="display: none;">
+              <label class="button-label" onclick="jsonDataExport()">Export</label>
+            </div>
+            
+          </div>
+
+          <div class="row mb-3">
+            <label for="opt_llm" style="padding:0em;">LLM Type</label>
+            <select id="opt_llm">
+              <option value="CGPT">OAI ChatGPT-3.5-turbo</option>
+              <option value="LL2">LLC LLama2-Chat</option>
+            </select>
+          </div>
+
+          <div class="row mb-3">
+            <label for="opt_language" style="padding:0em;">Output Language</label>
+            <select id="opt_language">
+              <option value="Indonesian">Indonesian</option>
+              <option value="English">English</option>
+            </select>
+          </div>
+
+
+          <div class="row mb-3">
+            <input style="width:4em;" type="numeric" id="inf_temperature" value="0.7" title="Geneneration Temperature">
+            <input style="width:4em;" type="numeric" id="inf_max_gen" value="512" title="Max.Geneneration">
+          </div>
+
+          <div class="row mb-3">
+            <label style="padding:0em;">Window Control</label>
+            <div style="padding-left:0em;">
+              <button id="wnd_minimize_all" onclick="wndMinimizeAll()">[M]</button>
+              <button id="wnd_restore_all" onclick="wndRestoreAll()">[R]</button>
+            </div>
+          </div>
+        </div>
+`
+    });
+    
+    
+
+    const wnd_extract_facts = new WinBox({
+    title: "Step 1: Extract Facts",
+    class: "dark no-max no-full no-close",
+    min: false,
+    x: "center",
+    y: "center",
+    width: "40%",
+    height: "60%",
+    html: `
+        <div style="padding:1em;">
+          <label for="wnd_extract_facts_ta_source" style="padding:0em;">Source Text</label>
+          <textarea style="width:100%;height:40%;overflow-x:scroll;" id="extract_facts_ta_source"></textarea>
+
+          <div class="mt-3 mb-3 ml-0" style="">    
+            <button class="btn btn-primary" id="wnd_extract_facts_generate" onclick="extractFacts()">Generate</button>
+            <button class="btn btn-primary" id="wnd_extract_facts_continue" onclick="continueFacts()">Continue</button>
+          </div>
+
+          <label for="wnd_extract_facts_ta_result" style="padding:0em;">Extracted Facts</label>
+          <textarea style="width:100%;height:40%;overflow-x:scroll;" id="extract_facts_ta_result"></textarea>
+        </div>
+      `
+    });
+
+    const wnd_write_essay = new WinBox({
+    title: "Step 2: Write Essay",
+    class: "dark no-max no-full no-close",
+    min: false,
+    x: "center",
+    y: "center",
+    width: "40%",
+    height: "60%",
+    html: `
+        <div style="padding:1em;">
+          <label for="wnd_write_essay_ta_source" style="padding:0em;">Source Facts</label>
+          <textarea style="width:100%;height:40%;overflow-x:scroll;" id="write_essay_ta_source"></textarea>
+
+          <div class="mt-3 mb-3 ml-0" style="">    
+            <button class="btn btn-primary" id="wnd_write_essay_generate" onclick="writeEssay()">Generate</button>
+            <button class="btn btn-primary" id="wnd_write_essay_continue" onclick="continueEssay()">Continue</button>
+          </div>
+          <label for="wnd_write_essay_ta_result" style="padding:0em;">New Essay</label>
+          <textarea style="width:100%;height:40%;overflow-x:scroll;" id="write_essay_ta_result"></textarea>
+        </div>
+      `
+    });
+
+    const wnd_grade_essay = new WinBox({
+    title: "Step 3: Grade Essay",
+    class: "dark no-max no-full no-close",
+    min: false,
+    x: "center",
+    y: "center",
+    width: "40%",
+    height: "60%",
+    html: `
+        <div class="container" style="_padding:1em;">
+
+          <div class="row gx-1" style="height:50%;">
+            <div class="col-6" style="">
+            <label for="grade_essay_ta_fact_source" style="padding:0em;">Source Facts</label>
+            <textarea style="width:100%;height:100%;overflow-x:scroll;" id="grade_essay_ta_fact_source"></textarea>
+            </div>
+
+            <div class="col-6" style="">
+            <label for="grade_essay_ta_essay_source" style="padding:0em;">Student Essay</label>
+            <textarea style="width:100%;height:100%;overflow-x:scroll;" id="grade_essay_ta_essay_source"></textarea>
+            </div>
+          </div>
+        
+          <div class="row" style="margin-top:4em;margin-left: auto;margin-right: auto;">
+            <select class="col-6" id="opt_grading_type">
+              <option value="gradingProcessType1">Type 1</option>
+              <option value="gradingProcessType2">Type 2</option>
+            </select>
+            <!--<button class="btn btn-primary col-6" id="wnd_grade_essay_facts" onclick="gradeExtractFactsFromStudentEssay()">Student Facts</button>-->
+            <button class="btn btn-primary col-6" id="wnd_grade_essay_generate" onclick="gradeEssay()">Grade Essay</button>
+          </div>
+
+          <div class="row gx-1" style="height:50%;">
+              <div class="col-12" style=""">
+                <!--<label for="grade_essay_ta_result" style="padding:0em;">Final Grade</label>-->
+                <textarea style="width:100%;height:100%;" id="grade_essay_ta_result"></textarea>
+            </div>
+          </div>
+          
+
+          <!--
+
+            <div class="row gx-1" style="height:50%;">
+            <div class="col-6" style="">
+              <textarea style="width:100%;height:100%;" id="grade_essay_ta_fact_student"></textarea>
+            </div>
+
+              <div class="col-6" style=""">
+                <textarea style="width:100%;height:100%;" id="grade_essay_ta_result"></textarea>
+            </div>
+          </div>
+          <div class="row gx-1" style="margin-top:1em;height:50%;">
+              <label for="grade_essay_ta_result" style="padding:0em;">Final Grade</label>
+              <textarea style="width:100%;height:100%;overflow-x:scroll;" id="grade_essay_ta_result"></textarea>
+          </div>
+          -->
+
+        </div>
+      `
+    });
+
+    
+    
+    window.onload = async function() {
+      window["ynbt-ai_essay_master"] = {};
+      window["ynbt-ai_essay_master"].wnd_grade_essay = wnd_grade_essay;
+      window["ynbt-ai_essay_master"].wnd_write_essay = wnd_write_essay;
+      window["ynbt-ai_essay_master"].wnd_extract_facts = wnd_extract_facts;
+      wnd_extract_facts.x = (wnd_settings.x+wnd_settings.width)+5;
+      wnd_extract_facts.y = wnd_settings.y;
+      wnd_extract_facts.move();
+
+      const tb_oai_key = docById("tb_oai_key");
+      tb_oai_key.value = my_oaiKey??"";
+
+      const file_import_json = document.getElementById('file_import_json');
+      file_import_json.addEventListener('change',jsonDataImport);
+    };
+  </script>
+</body>
+</html>

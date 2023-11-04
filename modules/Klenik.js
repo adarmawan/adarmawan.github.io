@@ -1,3 +1,6 @@
+import * as util from './utility.js';
+
+
 export function AstrologyGetSign(date) {
     const month = date.getMonth()+1;
     const day = date.getDate();
@@ -144,7 +147,7 @@ export function NumerologyLifePathNumber(date) {
   ];
   
 
-  return [lifePathNumber, LifePaths[lifePathNumber-1]];
+  return [lifePathNumber, LifePaths_short[lifePathNumber-1]];
 }
 
 export function AstrologyGetIndonesianMonthName(monthIndex=1) {
@@ -179,6 +182,7 @@ export function PrimbonGetHariPasaran(inputDate) {
     const indoMonthName = AstrologyGetIndonesianMonthName(inputDate.getMonth())
     return [rsp[0], Number(rsp[1]),   rsp[2], Number(rsp[3]), indoMonthName]
 }
+
 
 export function PrimbonGetSifatElemenHariLahir(namaHariLahir="Senin"){
     const SifatHariLahir = 
@@ -278,12 +282,149 @@ export function PrimbonGetPerJodohanHariLahir(neptuHariPasaran_a=[7,9], neptuHar
     return null;
 }
 
+export function CalculateAgeGroupAndCharacteristics(dateString="1990-12-31") {
+  const birthDate = new Date(dateString);
+  const currentDate = new Date();
+  const ageInMilliseconds = currentDate - birthDate;
+  const ageInYears = Math.floor(ageInMilliseconds / (365 * 24 * 60 * 60 * 1000));
+
+  const ageGroups_EN = [
+    { minAge: 0, maxAge: 2, group: "Infants and Toddlers", characteristics: ["Attachment to caregivers", "Exploration through senses", "Basic emotions"] },
+    { minAge: 3, maxAge: 5, group: "Preschoolers", characteristics: ["Language development", "Imagination and play", "Self-concept formation"] },
+    { minAge: 6, maxAge: 12, group: "School-Age Children", characteristics: ["Cognitive development", "Peer relationships", "Moral development"] },
+    { minAge: 13, maxAge: 19, group: "Adolescents and Teenagers", characteristics: ["Identity exploration", "Peer influence", "Emotional intensity"] },
+    { minAge: 20, maxAge: 25, group: "Young Adults", characteristics: ["Goal setting", "Relationship exploration", "Identity consolidation"] },
+    { minAge: 26, maxAge: 35, group: "Early Adulthood", characteristics: ["Career development", "Forming long-term relationships", "Parenting decisions"] },
+    { minAge: 36, maxAge: 55, group: "Middle Adulthood", characteristics: ["Midlife reflection", "Empty nest syndrome", "Coping with aging parents"] },
+    { minAge: 56, maxAge: 64, group: "Late Adulthood (Pre-Retirement)", characteristics: ["Planning for retirement", "Health maintenance", "Grandparenting roles"] },
+    { minAge: 65, maxAge: 74, group: "Seniors (Young-Old)", characteristics: ["Reflecting on life", "Health and wellness", "Social engagement"] },
+    { minAge: 75, maxAge: 84, group: "Seniors (Old-Old)", characteristics: ["Coping with aging", "Loss and grief", "Legacy considerations"] },
+    { minAge: 85, maxAge: Infinity, group: "Seniors (Oldest-Old)", characteristics: ["Longevity and resilience", "Continued learning", "Health management"] },
+  ];
+
+  const ageGroups = [
+    { minAge: 0, maxAge: 2, group: "Bayi dan Balita", characteristics: ["Keterikatan pada pengasuh", "Eksplorasi melalui indera", "Emosi dasar"] },
+    { minAge: 3, maxAge: 5, group: "Anak Prasekolah", characteristics: ["Pengembangan bahasa", "Imajinasi dan bermain", "Pembentukan konsep diri"] },
+    { minAge: 6, maxAge: 12, group: "Anak Sekolah", characteristics: ["Pengembangan kognitif", "Hubungan dengan teman sebaya", "Pengembangan moral"] },
+    { minAge: 13,maxAge: 19, group: "Remaja dan Pemuda", characteristics: ["Eksplorasi identitas", "Pengaruh teman sebaya", "Emosi yang intens"] },
+    { minAge: 20,maxAge: 25, group: "Dewasa Awal", characteristics: ["Menetapkan tujuan hidup", "Eksplorasi hubungan", "Konsolidasi identitas"] },
+    { minAge: 26,maxAge: 35, group: "Dewasa Tengah", characteristics: ["Pengembangan karier", "Membentuk hubungan jangka panjang", "Keputusan berkeluarga"] },
+    { minAge: 36,maxAge: 55, group: "Dewasa Akhir", characteristics: ["Refleksi pertengahan hidup", "Anak-anak keluar dari rumah", "Menghadapi orang tua yang menua"] },
+    { minAge: 56,maxAge: 64, group: "Lansia Awal (Sebelum Pensiun)", characteristics: ["Merencanakan pensiun", "Pemeliharaan kesehatan", "Peran sebagai nenek atau kakek"] },
+    { minAge: 65,maxAge: Infinity, group: "Lansia", characteristics: ["Merenung tentang hidup", "Menghadapi penuaan", "Kesehatan dan kesejahteraan"] }
+];
+
+  for (const ageGroup of ageGroups) {
+    if (ageInYears >= ageGroup.minAge && ageInYears <= ageGroup.maxAge) {
+      return {
+        ageGroup: ageGroup.group,
+        characteristics: ageGroup.characteristics,
+      };
+    }
+  }
+
+  return {
+    ageGroup: "Age group not found",
+    characteristics: [],
+  };
+}
+
+export function PrimbonGetHariBisnis(userBirthday, bussinessDay, goodDayOnly, dayCount=1)
+{
+  const KarakterHari = 
+  [
+    {
+      "Nama": "Senin",
+      "Karakter": "Hari yang baik untuk semua keperluan."
+    },
+    {
+      "Nama": "Selasa",
+      "Karakter": "Awalnya baik, tetapi hal-hal yang baik waktunya pendek, dan hal-hal yang tidak baik lebih panjang."
+    },
+    {
+      "Nama": "Rabu",
+      "Karakter": "Baik untuk semua keperluan, tetapi tidak sebaik hari Senin."
+    },
+    {
+      "Nama": "Kamis",
+      "Karakter": "Hari yang keras, Usaha akan banyak kesulitannya."
+    },
+    {
+      "Nama": "Jumat",
+      "Karakter": "Hari yang Panas, usaha akan banyak menemui kendala, dan gangguan serta perselisihan. sakit hati."
+    },
+    {
+      "Nama": "Saptu",
+      "Karakter": "Hari yang berat untuk semua urusan, Usaha akan banyak kesulitan, penyakit, naas, kecelakaan, musibah, dsb."
+    },
+    {
+      "Nama": "Minggu",
+      "Karakter": "Hari yang netral untuk semua urusan."
+    }
+  ];
+
+  const Pancasona = 
+  [
+    { Nilai:1, Nama:"Sri/Sandang", Karakter:"Rejeki Melimpah"},
+    { Nilai:2, Nama:"Lungguh/Pangan", Karakter:"Mendapat Derajat"},
+    { Nilai:3, Nama:"Gedhong/Bejo", Karakter:"Kaya Harta Benda"},
+    { Nilai:4, Nama:"Lara/Loro", Karakter:"Sakit-Sakitan"},
+    { Nilai:5, Nama:"Pati", Karakter:" Mati"}
+  ];
+
+  const detailHariUser = PrimbonGetHariPasaran(userBirthday);
+  Date.prototype.addDays = function(days) {
+    var date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+  }
+  
+  let rsp = [];
+  for(let idx=0;idx<dayCount;idx++)
+  {
+    const datePredict = bussinessDay.addDays(idx)
+    const detailHariBisnis = PrimbonGetHariPasaran(datePredict);
+    const wetonUser = detailHariUser[1] + detailHariUser[3];
+    const wetonHari = detailHariBisnis[1] + detailHariBisnis[3];
+    let wetonPancasona = (wetonUser + wetonHari)%5;
+    wetonPancasona = Math.min(Math.max(parseInt(wetonPancasona), 1), 5);
+    //if(wetonPancasona<1)wetonPancasona=1
+    //if(wetonPancasona>5)wetonPancasona=5
+    const hariKarakter = KarakterHari.filter(x=>x.Nama==detailHariBisnis[0])[0];
+    const hariPancasona = Pancasona.filter(x=>x.Nilai==wetonPancasona)[0];  
+    const tanggalStr = util.GetDateYYYYMMDDString(datePredict);  
+    const dayDetail = {
+      predictHari:  tanggalStr,
+      namaHari: hariKarakter.Nama,
+      karakterHari: hariKarakter.Karakter,
+      pancasona: `${hariPancasona.Nama} - ${hariPancasona.Karakter}`
+    }
+    if(goodDayOnly)
+    {
+      const nhb = hariKarakter.Nama;
+      const daysBad = "Kamis,Jumat,Saptu";
+      if(!daysBad.includes(nhb))
+      {
+        rsp.push(dayDetail);
+      }
+    }
+    else
+    {
+      rsp.push(dayDetail);
+    }
+    
+  }
+  
+
+  return rsp;
+}
 
 /* TESTs
 const dateA = new Date("1978-04-17") //["Senin",4,"Pahing",9]
 const dateB = new Date("1977-06-01") //["Rabu",7,"Pahing",9]
 const dayDetailA = PrimbonGetHariPasaran(dateA)
 const dayDetailB = PrimbonGetHariPasaran(dateB)
+const dayLuck = PrimbonGetHariMemulaiUsaha(new Date("1977-06-01"), new Date("2023-10-2"))
 //console.log(dayDetailA)
 //console.log(dayDetailB)
 console.log( PrimbonGetPerJodohanHariLahir( [dayDetailA[1],dayDetailA[3]], [dayDetailB[1],dayDetailB[3]]    ) );

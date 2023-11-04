@@ -95,6 +95,22 @@ export async function GetIDBObject(dataType="") {
 }
 
 
+export async function IsExistIDB(){
+    return new Promise((resolve, reject) => 
+    {
+        const request = window.indexedDB.open(IDB_NAME, 1);
+    
+        request.onerror = (event) => {
+            return false
+        };
+    
+        request.onsuccess = (event) => {
+            return true
+        };
+    });
+    
+}
+
 export async function DeleteIDB(){
     try {
         let deleteRequest = indexedDB.deleteDatabase(IDB_NAME);

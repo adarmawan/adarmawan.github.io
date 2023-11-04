@@ -1,1 +1,1 @@
-const my_oaiKey = "";
+const my_oaiKey = "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";

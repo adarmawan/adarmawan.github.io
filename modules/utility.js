@@ -50,6 +50,10 @@ export function RemoveWhitespaceItems(array=[""]) {
   return array.filter(item => /\S/.test(item));
 }
 
+export function RemoveLeadingTabAndWhiteSpacePreserveEmptyLines(text="")
+{
+  return text.replace(/^(?!\s*$)\s+/gm, ''); // Removes leading whitespace and tabs from each non-empty line/paragraph
+}
 export function GetTimeStamp()
 {
     return Math.floor(Date.now() / 1000)
@@ -75,7 +79,11 @@ export function GetGUIDV4() {
 
 export function GetNowUtcString()
 {
-  return new Date(Date.now()).toISOString();
+  return new Date(Date.now()).toISOString(); // e.g. "2016-11-21T08:00:00.000Z"
+}
+export function GetDateYYYYMMDDString(date)
+{
+  return new Date(date).toISOString().split("T")[0];
 }
 
 export function GetDateFromTimeStamp(seconds)
@@ -94,11 +102,12 @@ export function getTimeStampFromDateTime(dateTime)
   return epoch;
 }
 
-export function GetTokenCount(text="")
+
+export function GetTokenCount(text="",TOKENS_PERWORD=1.3)//En=1.3, Id=3.0
 {
-  const TOKENS_PERWORD_en = 1.3;
+  //const TOKENS_PERWORD_en = 1.3;
   const curWords = text.split(" ").length;
-  const curWordsToks = Math.floor(curWords*TOKENS_PERWORD_en)
+  const curWordsToks = Math.floor(curWords*TOKENS_PERWORD)
   return curWordsToks
 }
 
@@ -110,6 +119,14 @@ export async function delay(milliseconds){
 
 export function saveAsFile(filename, data, document) {
   const blob = new Blob([JSON.stringify(data)]);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = window.URL.createObjectURL(blob);
+  link.click()
+};
+
+export function saveAsFileText(filename, data, document) {
+  const blob = new Blob([data], { type: 'text/plain' });
   const link = document.createElement("a");
   link.download = filename;
   link.href = window.URL.createObjectURL(blob);
@@ -153,15 +170,15 @@ function XorString(str, key) {
 
 export function EncX(s, k) {
   let x1 = XorString(s,k)
-  console.log(x1)
+  //console.log(x1)
   let x2 = btoa(x1)
-  console.log(x2)
+  //console.log(x2)
   return x2
 }
 export function DecX(s, k) {
   let x1 = atob(s)
-  console.log(x1)
+  //console.log(x1)
   let x2 = XorString(x1, k);
-  console.log(x2)
+  //console.log(x2)
   return x2
 }
